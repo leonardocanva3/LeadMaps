@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: leadmaps
+    env: python
+    buildCommand: pip install -r requirements.txt && playwright install chromium
+    startCommand: gunicorn app:app
+    envVars:
+      - key: STORAGE_MODE
+        value: local
+      - key: APP_SECRET_KEY
+        generateValue: true

@@ -1,0 +1,955 @@
+[
+  {
+    "data_hora": "2026-06-05 15:15:37",
+    "acao": "WhatsApp aberto",
+    "lead_id": "58f830805ada2ad15043aa8318915407a0203936",
+    "before": {
+      "lead": {
+        "Nome": "GABRIELA R. NAIGEBORIN | PSICÓLOGA E PSICANALISTA",
+        "Telefone": "(11) 99375-7359",
+        "WhatsApp": "https://wa.me/5511993757359",
+        "Endereco": "R. Piauí, 350 - Higienópolis, São Paulo - SP, 02327-135",
+        "Site": "",
+        "Nota": "5,0",
+        "Quantidade de avaliacoes": "2",
+        "Cidade": "São Paulo",
+        "Tem Site?": "NAO",
+        "Oportunidade": "ALTA",
+        "Link do Google Maps": "https://www.google.com/maps/place/GABRIELA+R.+NAIGEBORIN+%7C+PSIC%C3%93LOGA+E+PSICANALISTA/data=!4m7!3m6!1s0x94ce59ed9a880d43:0xc6b4797cc63d2378!8m2!3d-23.5466157!4d-46.6544103!16s%2Fg%2F11ywgdycyn!19sChIJQw2Imu1ZzpQReCM9xnx5tMY?authuser=0&hl=pt-BR&rclk=1",
+        "Lead ID": "58f830805ada2ad15043aa8318915407a0203936",
+        "status_abordagem": "NOVO",
+        "data_primeira_abordagem": "",
+        "ultima_acao": "",
+        "data_ultimo_feedback": "",
+        "origem_raspagem": "",
+        "Adicionado em": "2026-06-05 14:59:12"
+      },
+      "feedback": {
+        "Status abordagem": "NOVO",
+        "WhatsApp valido?": "",
+        "Mensagem enviada?": "",
+        "Observacao": "",
+        "Data/hora do feedback": "",
+        "Data primeira abordagem": "",
+        "Ultima acao": ""
+      }
+    },
+    "after": {
+      "lead": {
+        "Nome": "GABRIELA R. NAIGEBORIN | PSICÓLOGA E PSICANALISTA",
+        "Telefone": "(11) 99375-7359",
+        "WhatsApp": "https://wa.me/5511993757359",
+        "Endereco": "R. Piauí, 350 - Higienópolis, São Paulo - SP, 02327-135",
+        "Site": "",
+        "Nota": "5,0",
+        "Quantidade de avaliacoes": "2",
+        "Cidade": "São Paulo",
+        "Tem Site?": "NAO",
+        "Oportunidade": "ALTA",
+        "Link do Google Maps": "https://www.google.com/maps/place/GABRIELA+R.+NAIGEBORIN+%7C+PSIC%C3%93LOGA+E+PSICANALISTA/data=!4m7!3m6!1s0x94ce59ed9a880d43:0xc6b4797cc63d2378!8m2!3d-23.5466157!4d-46.6544103!16s%2Fg%2F11ywgdycyn!19sChIJQw2Imu1ZzpQReCM9xnx5tMY?authuser=0&hl=pt-BR&rclk=1",
+        "Lead ID": "58f830805ada2ad15043aa8318915407a0203936",
+        "status_abordagem": "PENDENTE",
+        "data_primeira_abordagem": "2026-06-05 15:15:37",
+        "ultima_acao": "WhatsApp aberto",
+        "data_ultimo_feedback": "2026-06-05 15:15:37",
+        "origem_raspagem": "",
+        "Adicionado em": "2026-06-05 14:59:12"
+      },
+      "feedback": {
+        "Status abordagem": "PENDENTE",
+        "WhatsApp valido?": "",
+        "Mensagem enviada?": "",
+        "Observacao": "",
+        "Data/hora do feedback": "",
+        "Data primeira abordagem": "2026-06-05 15:15:37",
+        "Ultima acao": "WhatsApp aberto",
+        "Data ultimo feedback": "2026-06-05 15:15:37"
+      }
+    }
+  },
+  {
+    "data_hora": "2026-06-05 15:16:20",
+    "acao": "Feedback salvo pela esteira",
+    "lead_id": "58f830805ada2ad15043aa8318915407a0203936",
+    "before": {
+      "lead": {
+        "Nome": "GABRIELA R. NAIGEBORIN | PSICÓLOGA E PSICANALISTA",
+        "Telefone": "(11) 99375-7359",
+        "WhatsApp": "https://wa.me/5511993757359",
+        "Endereco": "R. Piauí, 350 - Higienópolis, São Paulo - SP, 02327-135",
+        "Site": "",
+        "Nota": "5,0",
+        "Quantidade de avaliacoes": "2",
+        "Cidade": "São Paulo",
+        "Tem Site?": "NAO",
+        "Oportunidade": "ALTA",
+        "Link do Google Maps": "https://www.google.com/maps/place/GABRIELA+R.+NAIGEBORIN+%7C+PSIC%C3%93LOGA+E+PSICANALISTA/data=!4m7!3m6!1s0x94ce59ed9a880d43:0xc6b4797cc63d2378!8m2!3d-23.5466157!4d-46.6544103!16s%2Fg%2F11ywgdycyn!19sChIJQw2Imu1ZzpQReCM9xnx5tMY?authuser=0&hl=pt-BR&rclk=1",
+        "Lead ID": "58f830805ada2ad15043aa8318915407a0203936",
+        "status_abordagem": "PENDENTE",
+        "data_primeira_abordagem": "2026-06-05 15:15:37",
+        "ultima_acao": "WhatsApp aberto",
+        "data_ultimo_feedback": "2026-06-05 15:15:37",
+        "origem_raspagem": "",
+        "Adicionado em": "2026-06-05 14:59:12"
+      },
+      "feedback": {
+        "Status abordagem": "PENDENTE",
+        "WhatsApp valido?": "",
+        "Mensagem enviada?": "",
+        "Observacao": "",
+        "Data/hora do feedback": "",
+        "Data primeira abordagem": "2026-06-05 15:15:37",
+        "Ultima acao": "WhatsApp aberto",
+        "Data ultimo feedback": "2026-06-05 15:15:37"
+      }
+    },
+    "after": {
+      "lead": {
+        "Nome": "GABRIELA R. NAIGEBORIN | PSICÓLOGA E PSICANALISTA",
+        "Telefone": "(11) 99375-7359",
+        "WhatsApp": "https://wa.me/5511993757359",
+        "Endereco": "R. Piauí, 350 - Higienópolis, São Paulo - SP, 02327-135",
+        "Site": "",
+        "Nota": "5,0",
+        "Quantidade de avaliacoes": "2",
+        "Cidade": "São Paulo",
+        "Tem Site?": "NAO",
+        "Oportunidade": "ALTA",
+        "Link do Google Maps": "https://www.google.com/maps/place/GABRIELA+R.+NAIGEBORIN+%7C+PSIC%C3%93LOGA+E+PSICANALISTA/data=!4m7!3m6!1s0x94ce59ed9a880d43:0xc6b4797cc63d2378!8m2!3d-23.5466157!4d-46.6544103!16s%2Fg%2F11ywgdycyn!19sChIJQw2Imu1ZzpQReCM9xnx5tMY?authuser=0&hl=pt-BR&rclk=1",
+        "Lead ID": "58f830805ada2ad15043aa8318915407a0203936",
+        "status_abordagem": "SUCESSO",
+        "data_primeira_abordagem": "2026-06-05 15:15:37",
+        "ultima_acao": "Feedback salvo pela esteira",
+        "data_ultimo_feedback": "2026-06-05 15:16:20",
+        "origem_raspagem": "",
+        "Adicionado em": "2026-06-05 14:59:12"
+      },
+      "feedback": {
+        "Status abordagem": "SUCESSO",
+        "WhatsApp valido?": "SIM",
+        "Mensagem enviada?": "SIM",
+        "Observacao": "",
+        "Data/hora do feedback": "2026-06-05 15:16:20",
+        "Data primeira abordagem": "2026-06-05 15:15:37",
+        "Ultima acao": "Feedback salvo pela esteira",
+        "Data ultimo feedback": "2026-06-05 15:16:20"
+      }
+    }
+  },
+  {
+    "data_hora": "2026-06-05 15:16:29",
+    "acao": "WhatsApp aberto",
+    "lead_id": "ae6aac365b464c17b54566d9db987bca31bd2c8c",
+    "before": {
+      "lead": {
+        "Nome": "Psicologia São Paulo",
+        "Telefone": "(11) 95832-4239",
+        "WhatsApp": "https://wa.me/5511958324239",
+        "Endereco": "Alameda Campinas, 433 - Jardim Paulista, São Paulo - SP, 01404-100",
+        "Site": "",
+        "Nota": "5,0",
+        "Quantidade de avaliacoes": "2",
+        "Cidade": "São Paulo",
+        "Tem Site?": "NAO",
+        "Oportunidade": "ALTA",
+        "Link do Google Maps": "https://www.google.com/maps/place/Psicologia+S%C3%A3o+Paulo/data=!4m7!3m6!1s0x94ce59a64c8c7c6d:0x3a37cd81bc5f0ba4!8m2!3d-23.5657189!4d-46.6527198!16s%2Fg%2F11rpcv2qbp!19sChIJbXyMTKZZzpQRpAtfvIHNNzo?authuser=0&hl=pt-BR&rclk=1",
+        "Lead ID": "ae6aac365b464c17b54566d9db987bca31bd2c8c",
+        "status_abordagem": "NOVO",
+        "data_primeira_abordagem": "",
+        "ultima_acao": "",
+        "data_ultimo_feedback": "",
+        "origem_raspagem": "",
+        "Adicionado em": "2026-06-05 14:59:12"
+      },
+      "feedback": {
+        "Status abordagem": "NOVO",
+        "WhatsApp valido?": "",
+        "Mensagem enviada?": "",
+        "Observacao": "",
+        "Data/hora do feedback": "",
+        "Data primeira abordagem": "",
+        "Ultima acao": ""
+      }
+    },
+    "after": {
+      "lead": {
+        "Nome": "Psicologia São Paulo",
+        "Telefone": "(11) 95832-4239",
+        "WhatsApp": "https://wa.me/5511958324239",
+        "Endereco": "Alameda Campinas, 433 - Jardim Paulista, São Paulo - SP, 01404-100",
+        "Site": "",
+        "Nota": "5,0",
+        "Quantidade de avaliacoes": "2",
+        "Cidade": "São Paulo",
+        "Tem Site?": "NAO",
+        "Oportunidade": "ALTA",
+        "Link do Google Maps": "https://www.google.com/maps/place/Psicologia+S%C3%A3o+Paulo/data=!4m7!3m6!1s0x94ce59a64c8c7c6d:0x3a37cd81bc5f0ba4!8m2!3d-23.5657189!4d-46.6527198!16s%2Fg%2F11rpcv2qbp!19sChIJbXyMTKZZzpQRpAtfvIHNNzo?authuser=0&hl=pt-BR&rclk=1",
+        "Lead ID": "ae6aac365b464c17b54566d9db987bca31bd2c8c",
+        "status_abordagem": "PENDENTE",
+        "data_primeira_abordagem": "2026-06-05 15:16:29",
+        "ultima_acao": "WhatsApp aberto",
+        "data_ultimo_feedback": "2026-06-05 15:16:29",
+        "origem_raspagem": "",
+        "Adicionado em": "2026-06-05 14:59:12"
+      },
+      "feedback": {
+        "Status abordagem": "PENDENTE",
+        "WhatsApp valido?": "",
+        "Mensagem enviada?": "",
+        "Observacao": "",
+        "Data/hora do feedback": "",
+        "Data primeira abordagem": "2026-06-05 15:16:29",
+        "Ultima acao": "WhatsApp aberto",
+        "Data ultimo feedback": "2026-06-05 15:16:29"
+      }
+    }
+  },
+  {
+    "data_hora": "2026-06-05 15:16:51",
+    "acao": "Feedback salvo pela esteira",
+    "lead_id": "ae6aac365b464c17b54566d9db987bca31bd2c8c",
+    "before": {
+      "lead": {
+        "Nome": "Psicologia São Paulo",
+        "Telefone": "(11) 95832-4239",
+        "WhatsApp": "https://wa.me/5511958324239",
+        "Endereco": "Alameda Campinas, 433 - Jardim Paulista, São Paulo - SP, 01404-100",
+        "Site": "",
+        "Nota": "5,0",
+        "Quantidade de avaliacoes": "2",
+        "Cidade": "São Paulo",
+        "Tem Site?": "NAO",
+        "Oportunidade": "ALTA",
+        "Link do Google Maps": "https://www.google.com/maps/place/Psicologia+S%C3%A3o+Paulo/data=!4m7!3m6!1s0x94ce59a64c8c7c6d:0x3a37cd81bc5f0ba4!8m2!3d-23.5657189!4d-46.6527198!16s%2Fg%2F11rpcv2qbp!19sChIJbXyMTKZZzpQRpAtfvIHNNzo?authuser=0&hl=pt-BR&rclk=1",
+        "Lead ID": "ae6aac365b464c17b54566d9db987bca31bd2c8c",
+        "status_abordagem": "PENDENTE",
+        "data_primeira_abordagem": "2026-06-05 15:16:29",
+        "ultima_acao": "WhatsApp aberto",
+        "data_ultimo_feedback": "2026-06-05 15:16:29",
+        "origem_raspagem": "",
+        "Adicionado em": "2026-06-05 14:59:12"
+      },
+      "feedback": {
+        "Status abordagem": "PENDENTE",
+        "WhatsApp valido?": "",
+        "Mensagem enviada?": "",
+        "Observacao": "",
+        "Data/hora do feedback": "",
+        "Data primeira abordagem": "2026-06-05 15:16:29",
+        "Ultima acao": "WhatsApp aberto",
+        "Data ultimo feedback": "2026-06-05 15:16:29"
+      }
+    },
+    "after": {
+      "lead": {
+        "Nome": "Psicologia São Paulo",
+        "Telefone": "(11) 95832-4239",
+        "WhatsApp": "https://wa.me/5511958324239",
+        "Endereco": "Alameda Campinas, 433 - Jardim Paulista, São Paulo - SP, 01404-100",
+        "Site": "",
+        "Nota": "5,0",
+        "Quantidade de avaliacoes": "2",
+        "Cidade": "São Paulo",
+        "Tem Site?": "NAO",
+        "Oportunidade": "ALTA",
+        "Link do Google Maps": "https://www.google.com/maps/place/Psicologia+S%C3%A3o+Paulo/data=!4m7!3m6!1s0x94ce59a64c8c7c6d:0x3a37cd81bc5f0ba4!8m2!3d-23.5657189!4d-46.6527198!16s%2Fg%2F11rpcv2qbp!19sChIJbXyMTKZZzpQRpAtfvIHNNzo?authuser=0&hl=pt-BR&rclk=1",
+        "Lead ID": "ae6aac365b464c17b54566d9db987bca31bd2c8c",
+        "status_abordagem": "SUCESSO",
+        "data_primeira_abordagem": "2026-06-05 15:16:29",
+        "ultima_acao": "Feedback salvo pela esteira",
+        "data_ultimo_feedback": "2026-06-05 15:16:51",
+        "origem_raspagem": "",
+        "Adicionado em": "2026-06-05 14:59:12"
+      },
+      "feedback": {
+        "Status abordagem": "SUCESSO",
+        "WhatsApp valido?": "SIM",
+        "Mensagem enviada?": "SIM",
+        "Observacao": "",
+        "Data/hora do feedback": "2026-06-05 15:16:51",
+        "Data primeira abordagem": "2026-06-05 15:16:29",
+        "Ultima acao": "Feedback salvo pela esteira",
+        "Data ultimo feedback": "2026-06-05 15:16:51"
+      }
+    }
+  },
+  {
+    "data_hora": "2026-06-05 15:17:01",
+    "acao": "WhatsApp aberto",
+    "lead_id": "cdf48706d06093bf3b23e8b102f57a7fbd4d85e6",
+    "before": {
+      "lead": {
+        "Nome": "Psicóloga Cristiane Souza",
+        "Telefone": "(11) 95458-1492",
+        "WhatsApp": "https://wa.me/5511954581492",
+        "Endereco": "R. Dr. Samuel Porto, 283 - São Paulo, SP, 04054-010",
+        "Site": "",
+        "Nota": "5,0",
+        "Quantidade de avaliacoes": "26",
+        "Cidade": "São Paulo",
+        "Tem Site?": "NAO",
+        "Oportunidade": "MEDIA",
+        "Link do Google Maps": "https://www.google.com/maps/place/Psic%C3%B3loga+Cristiane+Souza/data=!4m7!3m6!1s0x94ce676b31884b6d:0x24df9f35cb75803a!8m2!3d-23.6160333!4d-46.6397004!16s%2Fg%2F11sx72r8l7!19sChIJbUuIMWtnzpQROoB1yzWf3yQ?authuser=0&hl=pt-BR&rclk=1",
+        "Lead ID": "cdf48706d06093bf3b23e8b102f57a7fbd4d85e6",
+        "status_abordagem": "NOVO",
+        "data_primeira_abordagem": "",
+        "ultima_acao": "",
+        "data_ultimo_feedback": "",
+        "origem_raspagem": "",
+        "Adicionado em": "2026-06-05 14:59:12"
+      },
+      "feedback": {
+        "Status abordagem": "NOVO",
+        "WhatsApp valido?": "",
+        "Mensagem enviada?": "",
+        "Observacao": "",
+        "Data/hora do feedback": "",
+        "Data primeira abordagem": "",
+        "Ultima acao": ""
+      }
+    },
+    "after": {
+      "lead": {
+        "Nome": "Psicóloga Cristiane Souza",
+        "Telefone": "(11) 95458-1492",
+        "WhatsApp": "https://wa.me/5511954581492",
+        "Endereco": "R. Dr. Samuel Porto, 283 - São Paulo, SP, 04054-010",
+        "Site": "",
+        "Nota": "5,0",
+        "Quantidade de avaliacoes": "26",
+        "Cidade": "São Paulo",
+        "Tem Site?": "NAO",
+        "Oportunidade": "MEDIA",
+        "Link do Google Maps": "https://www.google.com/maps/place/Psic%C3%B3loga+Cristiane+Souza/data=!4m7!3m6!1s0x94ce676b31884b6d:0x24df9f35cb75803a!8m2!3d-23.6160333!4d-46.6397004!16s%2Fg%2F11sx72r8l7!19sChIJbUuIMWtnzpQROoB1yzWf3yQ?authuser=0&hl=pt-BR&rclk=1",
+        "Lead ID": "cdf48706d06093bf3b23e8b102f57a7fbd4d85e6",
+        "status_abordagem": "PENDENTE",
+        "data_primeira_abordagem": "2026-06-05 15:17:01",
+        "ultima_acao": "WhatsApp aberto",
+        "data_ultimo_feedback": "2026-06-05 15:17:01",
+        "origem_raspagem": "",
+        "Adicionado em": "2026-06-05 14:59:12"
+      },
+      "feedback": {
+        "Status abordagem": "PENDENTE",
+        "WhatsApp valido?": "",
+        "Mensagem enviada?": "",
+        "Observacao": "",
+        "Data/hora do feedback": "",
+        "Data primeira abordagem": "2026-06-05 15:17:01",
+        "Ultima acao": "WhatsApp aberto",
+        "Data ultimo feedback": "2026-06-05 15:17:01"
+      }
+    }
+  },
+  {
+    "data_hora": "2026-06-05 15:17:20",
+    "acao": "Feedback salvo pela esteira",
+    "lead_id": "cdf48706d06093bf3b23e8b102f57a7fbd4d85e6",
+    "before": {
+      "lead": {
+        "Nome": "Psicóloga Cristiane Souza",
+        "Telefone": "(11) 95458-1492",
+        "WhatsApp": "https://wa.me/5511954581492",
+        "Endereco": "R. Dr. Samuel Porto, 283 - São Paulo, SP, 04054-010",
+        "Site": "",
+        "Nota": "5,0",
+        "Quantidade de avaliacoes": "26",
+        "Cidade": "São Paulo",
+        "Tem Site?": "NAO",
+        "Oportunidade": "MEDIA",
+        "Link do Google Maps": "https://www.google.com/maps/place/Psic%C3%B3loga+Cristiane+Souza/data=!4m7!3m6!1s0x94ce676b31884b6d:0x24df9f35cb75803a!8m2!3d-23.6160333!4d-46.6397004!16s%2Fg%2F11sx72r8l7!19sChIJbUuIMWtnzpQROoB1yzWf3yQ?authuser=0&hl=pt-BR&rclk=1",
+        "Lead ID": "cdf48706d06093bf3b23e8b102f57a7fbd4d85e6",
+        "status_abordagem": "PENDENTE",
+        "data_primeira_abordagem": "2026-06-05 15:17:01",
+        "ultima_acao": "WhatsApp aberto",
+        "data_ultimo_feedback": "2026-06-05 15:17:01",
+        "origem_raspagem": "",
+        "Adicionado em": "2026-06-05 14:59:12"
+      },
+      "feedback": {
+        "Status abordagem": "PENDENTE",
+        "WhatsApp valido?": "",
+        "Mensagem enviada?": "",
+        "Observacao": "",
+        "Data/hora do feedback": "",
+        "Data primeira abordagem": "2026-06-05 15:17:01",
+        "Ultima acao": "WhatsApp aberto",
+        "Data ultimo feedback": "2026-06-05 15:17:01"
+      }
+    },
+    "after": {
+      "lead": {
+        "Nome": "Psicóloga Cristiane Souza",
+        "Telefone": "(11) 95458-1492",
+        "WhatsApp": "https://wa.me/5511954581492",
+        "Endereco": "R. Dr. Samuel Porto, 283 - São Paulo, SP, 04054-010",
+        "Site": "",
+        "Nota": "5,0",
+        "Quantidade de avaliacoes": "26",
+        "Cidade": "São Paulo",
+        "Tem Site?": "NAO",
+        "Oportunidade": "MEDIA",
+        "Link do Google Maps": "https://www.google.com/maps/place/Psic%C3%B3loga+Cristiane+Souza/data=!4m7!3m6!1s0x94ce676b31884b6d:0x24df9f35cb75803a!8m2!3d-23.6160333!4d-46.6397004!16s%2Fg%2F11sx72r8l7!19sChIJbUuIMWtnzpQROoB1yzWf3yQ?authuser=0&hl=pt-BR&rclk=1",
+        "Lead ID": "cdf48706d06093bf3b23e8b102f57a7fbd4d85e6",
+        "status_abordagem": "SUCESSO",
+        "data_primeira_abordagem": "2026-06-05 15:17:01",
+        "ultima_acao": "Feedback salvo pela esteira",
+        "data_ultimo_feedback": "2026-06-05 15:17:20",
+        "origem_raspagem": "",
+        "Adicionado em": "2026-06-05 14:59:12"
+      },
+      "feedback": {
+        "Status abordagem": "SUCESSO",
+        "WhatsApp valido?": "SIM",
+        "Mensagem enviada?": "SIM",
+        "Observacao": "",
+        "Data/hora do feedback": "2026-06-05 15:17:20",
+        "Data primeira abordagem": "2026-06-05 15:17:01",
+        "Ultima acao": "Feedback salvo pela esteira",
+        "Data ultimo feedback": "2026-06-05 15:17:20"
+      }
+    }
+  },
+  {
+    "data_hora": "2026-06-05 15:23:06",
+    "acao": "WhatsApp aberto",
+    "lead_id": "89b0bf8ce86f38d6b28b15e4ad76ff0dd0b40ae2",
+    "before": {
+      "lead": {
+        "Nome": "PsicoClinic - Psicóloga na Avenida Paulista | Bela Vista",
+        "Telefone": "(11) 98974-9763",
+        "WhatsApp": "https://wa.me/5511989749763",
+        "Endereco": "Av. Paulista, 807 - Bela Vista, São Paulo - SP, 01311-100",
+        "Site": "https://www.psicoclinic.com.br/",
+        "Nota": "5,0",
+        "Quantidade de avaliacoes": "26",
+        "Cidade": "São Paulo",
+        "Tem Site?": "SIM",
+        "Oportunidade": "BAIXA",
+        "Link do Google Maps": "https://www.google.com/maps/place/PsicoClinic+-+Psic%C3%B3loga+na+Avenida+Paulista+%7C+Bela+Vista/data=!4m7!3m6!1s0xa97de54e0a60b39b:0xcb1853d61f6064bb!8m2!3d-23.5669167!4d-46.6508063!16s%2Fg%2F11kpv9mmcz!19sChIJm7NgCk7lfakRu2RgH9ZTGMs?authuser=0&hl=pt-BR&rclk=1",
+        "Lead ID": "89b0bf8ce86f38d6b28b15e4ad76ff0dd0b40ae2",
+        "status_abordagem": "NOVO",
+        "data_primeira_abordagem": "",
+        "ultima_acao": "",
+        "data_ultimo_feedback": "",
+        "origem_raspagem": "",
+        "Adicionado em": "2026-06-05 14:59:12"
+      },
+      "feedback": {
+        "Status abordagem": "NOVO",
+        "WhatsApp valido?": "",
+        "Mensagem enviada?": "",
+        "Observacao": "",
+        "Data/hora do feedback": "",
+        "Data primeira abordagem": "",
+        "Ultima acao": ""
+      }
+    },
+    "after": {
+      "lead": {
+        "Nome": "PsicoClinic - Psicóloga na Avenida Paulista | Bela Vista",
+        "Telefone": "(11) 98974-9763",
+        "WhatsApp": "https://wa.me/5511989749763",
+        "Endereco": "Av. Paulista, 807 - Bela Vista, São Paulo - SP, 01311-100",
+        "Site": "https://www.psicoclinic.com.br/",
+        "Nota": "5,0",
+        "Quantidade de avaliacoes": "26",
+        "Cidade": "São Paulo",
+        "Tem Site?": "SIM",
+        "Oportunidade": "BAIXA",
+        "Link do Google Maps": "https://www.google.com/maps/place/PsicoClinic+-+Psic%C3%B3loga+na+Avenida+Paulista+%7C+Bela+Vista/data=!4m7!3m6!1s0xa97de54e0a60b39b:0xcb1853d61f6064bb!8m2!3d-23.5669167!4d-46.6508063!16s%2Fg%2F11kpv9mmcz!19sChIJm7NgCk7lfakRu2RgH9ZTGMs?authuser=0&hl=pt-BR&rclk=1",
+        "Lead ID": "89b0bf8ce86f38d6b28b15e4ad76ff0dd0b40ae2",
+        "status_abordagem": "PENDENTE",
+        "data_primeira_abordagem": "2026-06-05 15:23:06",
+        "ultima_acao": "WhatsApp aberto",
+        "data_ultimo_feedback": "2026-06-05 15:23:06",
+        "origem_raspagem": "",
+        "Adicionado em": "2026-06-05 14:59:12"
+      },
+      "feedback": {
+        "Status abordagem": "PENDENTE",
+        "WhatsApp valido?": "",
+        "Mensagem enviada?": "",
+        "Observacao": "",
+        "Data/hora do feedback": "",
+        "Data primeira abordagem": "2026-06-05 15:23:06",
+        "Ultima acao": "WhatsApp aberto",
+        "Data ultimo feedback": "2026-06-05 15:23:06"
+      }
+    }
+  },
+  {
+    "data_hora": "2026-06-05 15:24:43",
+    "acao": "Feedback salvo pela esteira",
+    "lead_id": "89b0bf8ce86f38d6b28b15e4ad76ff0dd0b40ae2",
+    "before": {
+      "lead": {
+        "Nome": "PsicoClinic - Psicóloga na Avenida Paulista | Bela Vista",
+        "Telefone": "(11) 98974-9763",
+        "WhatsApp": "https://wa.me/5511989749763",
+        "Endereco": "Av. Paulista, 807 - Bela Vista, São Paulo - SP, 01311-100",
+        "Site": "https://www.psicoclinic.com.br/",
+        "Nota": "5,0",
+        "Quantidade de avaliacoes": "26",
+        "Cidade": "São Paulo",
+        "Tem Site?": "SIM",
+        "Oportunidade": "BAIXA",
+        "Link do Google Maps": "https://www.google.com/maps/place/PsicoClinic+-+Psic%C3%B3loga+na+Avenida+Paulista+%7C+Bela+Vista/data=!4m7!3m6!1s0xa97de54e0a60b39b:0xcb1853d61f6064bb!8m2!3d-23.5669167!4d-46.6508063!16s%2Fg%2F11kpv9mmcz!19sChIJm7NgCk7lfakRu2RgH9ZTGMs?authuser=0&hl=pt-BR&rclk=1",
+        "Lead ID": "89b0bf8ce86f38d6b28b15e4ad76ff0dd0b40ae2",
+        "status_abordagem": "PENDENTE",
+        "data_primeira_abordagem": "2026-06-05 15:23:06",
+        "ultima_acao": "WhatsApp aberto",
+        "data_ultimo_feedback": "2026-06-05 15:23:06",
+        "origem_raspagem": "",
+        "Adicionado em": "2026-06-05 14:59:12"
+      },
+      "feedback": {
+        "Status abordagem": "PENDENTE",
+        "WhatsApp valido?": "",
+        "Mensagem enviada?": "",
+        "Observacao": "",
+        "Data/hora do feedback": "",
+        "Data primeira abordagem": "2026-06-05 15:23:06",
+        "Ultima acao": "WhatsApp aberto",
+        "Data ultimo feedback": "2026-06-05 15:23:06"
+      }
+    },
+    "after": {
+      "lead": {
+        "Nome": "PsicoClinic - Psicóloga na Avenida Paulista | Bela Vista",
+        "Telefone": "(11) 98974-9763",
+        "WhatsApp": "https://wa.me/5511989749763",
+        "Endereco": "Av. Paulista, 807 - Bela Vista, São Paulo - SP, 01311-100",
+        "Site": "https://www.psicoclinic.com.br/",
+        "Nota": "5,0",
+        "Quantidade de avaliacoes": "26",
+        "Cidade": "São Paulo",
+        "Tem Site?": "SIM",
+        "Oportunidade": "BAIXA",
+        "Link do Google Maps": "https://www.google.com/maps/place/PsicoClinic+-+Psic%C3%B3loga+na+Avenida+Paulista+%7C+Bela+Vista/data=!4m7!3m6!1s0xa97de54e0a60b39b:0xcb1853d61f6064bb!8m2!3d-23.5669167!4d-46.6508063!16s%2Fg%2F11kpv9mmcz!19sChIJm7NgCk7lfakRu2RgH9ZTGMs?authuser=0&hl=pt-BR&rclk=1",
+        "Lead ID": "89b0bf8ce86f38d6b28b15e4ad76ff0dd0b40ae2",
+        "status_abordagem": "SUCESSO",
+        "data_primeira_abordagem": "2026-06-05 15:23:06",
+        "ultima_acao": "Feedback salvo pela esteira",
+        "data_ultimo_feedback": "2026-06-05 15:24:43",
+        "origem_raspagem": "",
+        "Adicionado em": "2026-06-05 14:59:12"
+      },
+      "feedback": {
+        "Status abordagem": "SUCESSO",
+        "WhatsApp valido?": "SIM",
+        "Mensagem enviada?": "SIM",
+        "Observacao": "",
+        "Data/hora do feedback": "2026-06-05 15:24:43",
+        "Data primeira abordagem": "2026-06-05 15:23:06",
+        "Ultima acao": "Feedback salvo pela esteira",
+        "Data ultimo feedback": "2026-06-05 15:24:43"
+      }
+    }
+  },
+  {
+    "data_hora": "2026-06-05 15:48:28",
+    "acao": "WhatsApp aberto",
+    "lead_id": "616abd30cda17f57569a0431b6adc558c326c024",
+    "before": {
+      "lead": {
+        "Nome": "Psicóloga Dra. Rose Nóbrega",
+        "Telefone": "(11) 93951-0806",
+        "WhatsApp": "https://wa.me/5511939510806",
+        "Endereco": "R. Domingos de Morais, 2781 - CONJUNTO 905, 9 ANDAR - Vila Mariana, São Paulo - SP, 04035-001",
+        "Site": "http://www.rnobregapsi.com.br/",
+        "Nota": "5,0",
+        "Quantidade de avaliacoes": "91",
+        "Cidade": "São Paulo",
+        "Tem Site?": "SIM",
+        "Oportunidade": "BAIXA",
+        "Link do Google Maps": "https://www.google.com/maps/place/Psic%C3%B3loga+Dra.+Rose+N%C3%B3brega/data=!4m7!3m6!1s0x4d2541815bca5093:0x90331a06ed5d2126!8m2!3d-23.6008972!4d-46.6364251!16s%2Fg%2F11rhwk14kf!19sChIJk1DKW4FBJU0RJiFd7QYaM5A?authuser=0&hl=pt-BR&rclk=1",
+        "Lead ID": "616abd30cda17f57569a0431b6adc558c326c024",
+        "status_abordagem": "NOVO",
+        "data_primeira_abordagem": "",
+        "ultima_acao": "",
+        "data_ultimo_feedback": "",
+        "origem_raspagem": "",
+        "Adicionado em": "2026-06-05 14:59:12"
+      },
+      "feedback": {
+        "Status abordagem": "NOVO",
+        "WhatsApp valido?": "",
+        "Mensagem enviada?": "",
+        "Observacao": "",
+        "Data/hora do feedback": "",
+        "Data primeira abordagem": "",
+        "Ultima acao": ""
+      }
+    },
+    "after": {
+      "lead": {
+        "Nome": "Psicóloga Dra. Rose Nóbrega",
+        "Telefone": "(11) 93951-0806",
+        "WhatsApp": "https://wa.me/5511939510806",
+        "Endereco": "R. Domingos de Morais, 2781 - CONJUNTO 905, 9 ANDAR - Vila Mariana, São Paulo - SP, 04035-001",
+        "Site": "http://www.rnobregapsi.com.br/",
+        "Nota": "5,0",
+        "Quantidade de avaliacoes": "91",
+        "Cidade": "São Paulo",
+        "Tem Site?": "SIM",
+        "Oportunidade": "BAIXA",
+        "Link do Google Maps": "https://www.google.com/maps/place/Psic%C3%B3loga+Dra.+Rose+N%C3%B3brega/data=!4m7!3m6!1s0x4d2541815bca5093:0x90331a06ed5d2126!8m2!3d-23.6008972!4d-46.6364251!16s%2Fg%2F11rhwk14kf!19sChIJk1DKW4FBJU0RJiFd7QYaM5A?authuser=0&hl=pt-BR&rclk=1",
+        "Lead ID": "616abd30cda17f57569a0431b6adc558c326c024",
+        "status_abordagem": "NOVO",
+        "data_primeira_abordagem": "2026-06-05 15:48:28",
+        "ultima_acao": "WhatsApp aberto",
+        "data_ultimo_feedback": "",
+        "origem_raspagem": "",
+        "Adicionado em": "2026-06-05 14:59:12"
+      },
+      "feedback": {
+        "Status abordagem": "NOVO",
+        "WhatsApp valido?": "",
+        "Mensagem enviada?": "",
+        "Observacao": "",
+        "Data/hora do feedback": "",
+        "Data primeira abordagem": "2026-06-05 15:48:28",
+        "Ultima acao": "WhatsApp aberto"
+      }
+    }
+  },
+  {
+    "data_hora": "2026-06-05 15:48:55",
+    "acao": "Feedback salvo pela esteira",
+    "lead_id": "616abd30cda17f57569a0431b6adc558c326c024",
+    "before": {
+      "lead": {
+        "Nome": "Psicóloga Dra. Rose Nóbrega",
+        "Telefone": "(11) 93951-0806",
+        "WhatsApp": "https://wa.me/5511939510806",
+        "Endereco": "R. Domingos de Morais, 2781 - CONJUNTO 905, 9 ANDAR - Vila Mariana, São Paulo - SP, 04035-001",
+        "Site": "http://www.rnobregapsi.com.br/",
+        "Nota": "5,0",
+        "Quantidade de avaliacoes": "91",
+        "Cidade": "São Paulo",
+        "Tem Site?": "SIM",
+        "Oportunidade": "BAIXA",
+        "Link do Google Maps": "https://www.google.com/maps/place/Psic%C3%B3loga+Dra.+Rose+N%C3%B3brega/data=!4m7!3m6!1s0x4d2541815bca5093:0x90331a06ed5d2126!8m2!3d-23.6008972!4d-46.6364251!16s%2Fg%2F11rhwk14kf!19sChIJk1DKW4FBJU0RJiFd7QYaM5A?authuser=0&hl=pt-BR&rclk=1",
+        "Lead ID": "616abd30cda17f57569a0431b6adc558c326c024",
+        "status_abordagem": "NOVO",
+        "data_primeira_abordagem": "2026-06-05 15:48:28",
+        "ultima_acao": "WhatsApp aberto",
+        "data_ultimo_feedback": "",
+        "origem_raspagem": "",
+        "Adicionado em": "2026-06-05 14:59:12"
+      },
+      "feedback": {
+        "Status abordagem": "NOVO",
+        "WhatsApp valido?": "",
+        "Mensagem enviada?": "",
+        "Observacao": "",
+        "Data/hora do feedback": "",
+        "Data primeira abordagem": "2026-06-05 15:48:28",
+        "Ultima acao": "WhatsApp aberto"
+      }
+    },
+    "after": {
+      "lead": {
+        "Nome": "Psicóloga Dra. Rose Nóbrega",
+        "Telefone": "(11) 93951-0806",
+        "WhatsApp": "https://wa.me/5511939510806",
+        "Endereco": "R. Domingos de Morais, 2781 - CONJUNTO 905, 9 ANDAR - Vila Mariana, São Paulo - SP, 04035-001",
+        "Site": "http://www.rnobregapsi.com.br/",
+        "Nota": "5,0",
+        "Quantidade de avaliacoes": "91",
+        "Cidade": "São Paulo",
+        "Tem Site?": "SIM",
+        "Oportunidade": "BAIXA",
+        "Link do Google Maps": "https://www.google.com/maps/place/Psic%C3%B3loga+Dra.+Rose+N%C3%B3brega/data=!4m7!3m6!1s0x4d2541815bca5093:0x90331a06ed5d2126!8m2!3d-23.6008972!4d-46.6364251!16s%2Fg%2F11rhwk14kf!19sChIJk1DKW4FBJU0RJiFd7QYaM5A?authuser=0&hl=pt-BR&rclk=1",
+        "Lead ID": "616abd30cda17f57569a0431b6adc558c326c024",
+        "status_abordagem": "SUCESSO",
+        "data_primeira_abordagem": "2026-06-05 15:48:28",
+        "ultima_acao": "Feedback salvo pela esteira",
+        "data_ultimo_feedback": "2026-06-05 15:48:55",
+        "origem_raspagem": "",
+        "Adicionado em": "2026-06-05 14:59:12"
+      },
+      "feedback": {
+        "Status abordagem": "SUCESSO",
+        "WhatsApp valido?": "SIM",
+        "Mensagem enviada?": "SIM",
+        "Observacao": "",
+        "Data/hora do feedback": "2026-06-05 15:48:55",
+        "Data primeira abordagem": "2026-06-05 15:48:28",
+        "Ultima acao": "Feedback salvo pela esteira",
+        "Data ultimo feedback": "2026-06-05 15:48:55"
+      }
+    }
+  },
+  {
+    "data_hora": "2026-06-05 15:52:27",
+    "acao": "WhatsApp aberto",
+    "lead_id": "16faf1cd3e584401784e9b3e0b3db97ae5638b57",
+    "before": {
+      "lead": {
+        "Nome": "CLINICA DE PSICOLOGIA SP LTDA",
+        "Telefone": "(11) 99824-1538",
+        "WhatsApp": "https://wa.me/5511998241538",
+        "Endereco": "Rua dos Ingleses, 149 - Morro dos Ingleses, São Paulo - SP, 01329-000",
+        "Site": "http://www.clinicapsicologiasp.com.br/",
+        "Nota": "5,0",
+        "Quantidade de avaliacoes": "30",
+        "Cidade": "São Paulo",
+        "Tem Site?": "SIM",
+        "Oportunidade": "BAIXA",
+        "Link do Google Maps": "https://www.google.com/maps/place/CLINICA+DE+PSICOLOGIA+SP+LTDA/data=!4m7!3m6!1s0x94ce59a0cb5f24a3:0x8296cbe1b8795a43!8m2!3d-23.559231!4d-46.6469342!16s%2Fg%2F11k53xprxm!19sChIJoyRfy6BZzpQRQ1p5uOHLloI?authuser=0&hl=pt-BR&rclk=1",
+        "Lead ID": "16faf1cd3e584401784e9b3e0b3db97ae5638b57",
+        "status_abordagem": "NOVO",
+        "data_primeira_abordagem": "",
+        "ultima_acao": "",
+        "data_ultimo_feedback": "",
+        "origem_raspagem": "",
+        "Adicionado em": "2026-06-05 14:59:12"
+      },
+      "feedback": {
+        "Status abordagem": "NOVO",
+        "WhatsApp valido?": "",
+        "Mensagem enviada?": "",
+        "Observacao": "",
+        "Data/hora do feedback": "",
+        "Data primeira abordagem": "",
+        "Ultima acao": ""
+      }
+    },
+    "after": {
+      "lead": {
+        "Nome": "CLINICA DE PSICOLOGIA SP LTDA",
+        "Telefone": "(11) 99824-1538",
+        "WhatsApp": "https://wa.me/5511998241538",
+        "Endereco": "Rua dos Ingleses, 149 - Morro dos Ingleses, São Paulo - SP, 01329-000",
+        "Site": "http://www.clinicapsicologiasp.com.br/",
+        "Nota": "5,0",
+        "Quantidade de avaliacoes": "30",
+        "Cidade": "São Paulo",
+        "Tem Site?": "SIM",
+        "Oportunidade": "BAIXA",
+        "Link do Google Maps": "https://www.google.com/maps/place/CLINICA+DE+PSICOLOGIA+SP+LTDA/data=!4m7!3m6!1s0x94ce59a0cb5f24a3:0x8296cbe1b8795a43!8m2!3d-23.559231!4d-46.6469342!16s%2Fg%2F11k53xprxm!19sChIJoyRfy6BZzpQRQ1p5uOHLloI?authuser=0&hl=pt-BR&rclk=1",
+        "Lead ID": "16faf1cd3e584401784e9b3e0b3db97ae5638b57",
+        "status_abordagem": "NOVO",
+        "data_primeira_abordagem": "2026-06-05 15:52:27",
+        "ultima_acao": "WhatsApp aberto",
+        "data_ultimo_feedback": "",
+        "origem_raspagem": "",
+        "Adicionado em": "2026-06-05 14:59:12"
+      },
+      "feedback": {
+        "Status abordagem": "NOVO",
+        "WhatsApp valido?": "",
+        "Mensagem enviada?": "",
+        "Observacao": "",
+        "Data/hora do feedback": "",
+        "Data primeira abordagem": "2026-06-05 15:52:27",
+        "Ultima acao": "WhatsApp aberto"
+      }
+    }
+  },
+  {
+    "data_hora": "2026-06-05 15:52:45",
+    "acao": "Feedback salvo pela esteira",
+    "lead_id": "16faf1cd3e584401784e9b3e0b3db97ae5638b57",
+    "before": {
+      "lead": {
+        "Nome": "CLINICA DE PSICOLOGIA SP LTDA",
+        "Telefone": "(11) 99824-1538",
+        "WhatsApp": "https://wa.me/5511998241538",
+        "Endereco": "Rua dos Ingleses, 149 - Morro dos Ingleses, São Paulo - SP, 01329-000",
+        "Site": "http://www.clinicapsicologiasp.com.br/",
+        "Nota": "5,0",
+        "Quantidade de avaliacoes": "30",
+        "Cidade": "São Paulo",
+        "Tem Site?": "SIM",
+        "Oportunidade": "BAIXA",
+        "Link do Google Maps": "https://www.google.com/maps/place/CLINICA+DE+PSICOLOGIA+SP+LTDA/data=!4m7!3m6!1s0x94ce59a0cb5f24a3:0x8296cbe1b8795a43!8m2!3d-23.559231!4d-46.6469342!16s%2Fg%2F11k53xprxm!19sChIJoyRfy6BZzpQRQ1p5uOHLloI?authuser=0&hl=pt-BR&rclk=1",
+        "Lead ID": "16faf1cd3e584401784e9b3e0b3db97ae5638b57",
+        "status_abordagem": "NOVO",
+        "data_primeira_abordagem": "2026-06-05 15:52:27",
+        "ultima_acao": "WhatsApp aberto",
+        "data_ultimo_feedback": "",
+        "origem_raspagem": "",
+        "Adicionado em": "2026-06-05 14:59:12"
+      },
+      "feedback": {
+        "Status abordagem": "NOVO",
+        "WhatsApp valido?": "",
+        "Mensagem enviada?": "",
+        "Observacao": "",
+        "Data/hora do feedback": "",
+        "Data primeira abordagem": "2026-06-05 15:52:27",
+        "Ultima acao": "WhatsApp aberto"
+      }
+    },
+    "after": {
+      "lead": {
+        "Nome": "CLINICA DE PSICOLOGIA SP LTDA",
+        "Telefone": "(11) 99824-1538",
+        "WhatsApp": "https://wa.me/5511998241538",
+        "Endereco": "Rua dos Ingleses, 149 - Morro dos Ingleses, São Paulo - SP, 01329-000",
+        "Site": "http://www.clinicapsicologiasp.com.br/",
+        "Nota": "5,0",
+        "Quantidade de avaliacoes": "30",
+        "Cidade": "São Paulo",
+        "Tem Site?": "SIM",
+        "Oportunidade": "BAIXA",
+        "Link do Google Maps": "https://www.google.com/maps/place/CLINICA+DE+PSICOLOGIA+SP+LTDA/data=!4m7!3m6!1s0x94ce59a0cb5f24a3:0x8296cbe1b8795a43!8m2!3d-23.559231!4d-46.6469342!16s%2Fg%2F11k53xprxm!19sChIJoyRfy6BZzpQRQ1p5uOHLloI?authuser=0&hl=pt-BR&rclk=1",
+        "Lead ID": "16faf1cd3e584401784e9b3e0b3db97ae5638b57",
+        "status_abordagem": "SUCESSO",
+        "data_primeira_abordagem": "2026-06-05 15:52:27",
+        "ultima_acao": "Feedback salvo pela esteira",
+        "data_ultimo_feedback": "2026-06-05 15:52:45",
+        "origem_raspagem": "",
+        "Adicionado em": "2026-06-05 14:59:12"
+      },
+      "feedback": {
+        "Status abordagem": "SUCESSO",
+        "WhatsApp valido?": "SIM",
+        "Mensagem enviada?": "SIM",
+        "Observacao": "",
+        "Data/hora do feedback": "2026-06-05 15:52:45",
+        "Data primeira abordagem": "2026-06-05 15:52:27",
+        "Ultima acao": "Feedback salvo pela esteira",
+        "Data ultimo feedback": "2026-06-05 15:52:45"
+      }
+    }
+  },
+  {
+    "data_hora": "2026-06-05 16:06:32",
+    "acao": "WhatsApp aberto",
+    "lead_id": "5c1f6b9ac6a3a99105137be2406cd14c418c6661",
+    "before": {
+      "lead": {
+        "Nome": "Psicóloga Gil Jung | Psicóloga para Homens em São Paulo",
+        "Telefone": "(11) 94352-5175",
+        "WhatsApp": "https://wa.me/5511943525175",
+        "Endereco": "R. Bacaetava, 191 - sala 1805 - Brooklin Novo, São Paulo - SP, 04705-010",
+        "Site": "https://tinyurl.com/psicologa-gil-jung",
+        "Nota": "5,0",
+        "Quantidade de avaliacoes": "23",
+        "Cidade": "São Paulo",
+        "Tem Site?": "SIM",
+        "Oportunidade": "BAIXA",
+        "Link do Google Maps": "https://www.google.com/maps/place/Psic%C3%B3loga+Gil+Jung+%7C+Psic%C3%B3loga+para+Homens+em+S%C3%A3o+Paulo/data=!4m7!3m6!1s0x94ce517b5cb07203:0xff621a1d6674f0e3!8m2!3d-23.6217111!4d-46.6947583!16s%2Fg%2F11w_vhf01l!19sChIJA3KwXHtRzpQR4_B0Zh0aYv8?authuser=0&hl=pt-BR&rclk=1",
+        "Lead ID": "5c1f6b9ac6a3a99105137be2406cd14c418c6661",
+        "status_abordagem": "NOVO",
+        "data_primeira_abordagem": "",
+        "ultima_acao": "",
+        "data_ultimo_feedback": "",
+        "origem_raspagem": "",
+        "Adicionado em": "2026-06-05 14:59:12"
+      },
+      "feedback": {
+        "Status abordagem": "NOVO",
+        "WhatsApp valido?": "",
+        "Mensagem enviada?": "",
+        "Observacao": "",
+        "Data/hora do feedback": "",
+        "Data primeira abordagem": "",
+        "Ultima acao": ""
+      }
+    },
+    "after": {
+      "lead": {
+        "Nome": "Psicóloga Gil Jung | Psicóloga para Homens em São Paulo",
+        "Telefone": "(11) 94352-5175",
+        "WhatsApp": "https://wa.me/5511943525175",
+        "Endereco": "R. Bacaetava, 191 - sala 1805 - Brooklin Novo, São Paulo - SP, 04705-010",
+        "Site": "https://tinyurl.com/psicologa-gil-jung",
+        "Nota": "5,0",
+        "Quantidade de avaliacoes": "23",
+        "Cidade": "São Paulo",
+        "Tem Site?": "SIM",
+        "Oportunidade": "BAIXA",
+        "Link do Google Maps": "https://www.google.com/maps/place/Psic%C3%B3loga+Gil+Jung+%7C+Psic%C3%B3loga+para+Homens+em+S%C3%A3o+Paulo/data=!4m7!3m6!1s0x94ce517b5cb07203:0xff621a1d6674f0e3!8m2!3d-23.6217111!4d-46.6947583!16s%2Fg%2F11w_vhf01l!19sChIJA3KwXHtRzpQR4_B0Zh0aYv8?authuser=0&hl=pt-BR&rclk=1",
+        "Lead ID": "5c1f6b9ac6a3a99105137be2406cd14c418c6661",
+        "status_abordagem": "NOVO",
+        "data_primeira_abordagem": "2026-06-05 16:06:32",
+        "ultima_acao": "WhatsApp aberto",
+        "data_ultimo_feedback": "",
+        "origem_raspagem": "",
+        "Adicionado em": "2026-06-05 14:59:12"
+      },
+      "feedback": {
+        "Status abordagem": "NOVO",
+        "WhatsApp valido?": "",
+        "Mensagem enviada?": "",
+        "Observacao": "",
+        "Data/hora do feedback": "",
+        "Data primeira abordagem": "2026-06-05 16:06:32",
+        "Ultima acao": "WhatsApp aberto"
+      }
+    }
+  },
+  {
+    "data_hora": "2026-06-05 16:07:31",
+    "acao": "Feedback salvo pela esteira",
+    "lead_id": "5c1f6b9ac6a3a99105137be2406cd14c418c6661",
+    "before": {
+      "lead": {
+        "Nome": "Psicóloga Gil Jung | Psicóloga para Homens em São Paulo",
+        "Telefone": "(11) 94352-5175",
+        "WhatsApp": "https://wa.me/5511943525175",
+        "Endereco": "R. Bacaetava, 191 - sala 1805 - Brooklin Novo, São Paulo - SP, 04705-010",
+        "Site": "https://tinyurl.com/psicologa-gil-jung",
+        "Nota": "5,0",
+        "Quantidade de avaliacoes": "23",
+        "Cidade": "São Paulo",
+        "Tem Site?": "SIM",
+        "Oportunidade": "BAIXA",
+        "Link do Google Maps": "https://www.google.com/maps/place/Psic%C3%B3loga+Gil+Jung+%7C+Psic%C3%B3loga+para+Homens+em+S%C3%A3o+Paulo/data=!4m7!3m6!1s0x94ce517b5cb07203:0xff621a1d6674f0e3!8m2!3d-23.6217111!4d-46.6947583!16s%2Fg%2F11w_vhf01l!19sChIJA3KwXHtRzpQR4_B0Zh0aYv8?authuser=0&hl=pt-BR&rclk=1",
+        "Lead ID": "5c1f6b9ac6a3a99105137be2406cd14c418c6661",
+        "status_abordagem": "NOVO",
+        "data_primeira_abordagem": "2026-06-05 16:06:32",
+        "ultima_acao": "WhatsApp aberto",
+        "data_ultimo_feedback": "",
+        "origem_raspagem": "",
+        "Adicionado em": "2026-06-05 14:59:12"
+      },
+      "feedback": {
+        "Status abordagem": "NOVO",
+        "WhatsApp valido?": "",
+        "Mensagem enviada?": "",
+        "Observacao": "",
+        "Data/hora do feedback": "",
+        "Data primeira abordagem": "2026-06-05 16:06:32",
+        "Ultima acao": "WhatsApp aberto"
+      }
+    },
+    "after": {
+      "lead": {
+        "Nome": "Psicóloga Gil Jung | Psicóloga para Homens em São Paulo",
+        "Telefone": "(11) 94352-5175",
+        "WhatsApp": "https://wa.me/5511943525175",
+        "Endereco": "R. Bacaetava, 191 - sala 1805 - Brooklin Novo, São Paulo - SP, 04705-010",
+        "Site": "https://tinyurl.com/psicologa-gil-jung",
+        "Nota": "5,0",
+        "Quantidade de avaliacoes": "23",
+        "Cidade": "São Paulo",
+        "Tem Site?": "SIM",
+        "Oportunidade": "BAIXA",
+        "Link do Google Maps": "https://www.google.com/maps/place/Psic%C3%B3loga+Gil+Jung+%7C+Psic%C3%B3loga+para+Homens+em+S%C3%A3o+Paulo/data=!4m7!3m6!1s0x94ce517b5cb07203:0xff621a1d6674f0e3!8m2!3d-23.6217111!4d-46.6947583!16s%2Fg%2F11w_vhf01l!19sChIJA3KwXHtRzpQR4_B0Zh0aYv8?authuser=0&hl=pt-BR&rclk=1",
+        "Lead ID": "5c1f6b9ac6a3a99105137be2406cd14c418c6661",
+        "status_abordagem": "SUCESSO",
+        "data_primeira_abordagem": "2026-06-05 16:06:32",
+        "ultima_acao": "Feedback salvo pela esteira",
+        "data_ultimo_feedback": "2026-06-05 16:07:31",
+        "origem_raspagem": "",
+        "Adicionado em": "2026-06-05 14:59:12"
+      },
+      "feedback": {
+        "Status abordagem": "SUCESSO",
+        "WhatsApp valido?": "SIM",
+        "Mensagem enviada?": "SIM",
+        "Observacao": "",
+        "Data/hora do feedback": "2026-06-05 16:07:31",
+        "Data primeira abordagem": "2026-06-05 16:06:32",
+        "Ultima acao": "Feedback salvo pela esteira",
+        "Data ultimo feedback": "2026-06-05 16:07:31"
+      }
+    }
+  }
+]

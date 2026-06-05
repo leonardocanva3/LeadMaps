@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>LeadMaps - Acesso</title>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <main class="login-page">
+        <section class="card login-card">
+            <span class="eyebrow">LeadMaps</span>
+            <h1>Acesso ao painel</h1>
+            <form method="post" class="login-form">
+                <label>
+                    Senha
+                    <input type="password" name="password" required autofocus>
+                </label>
+                <button type="submit" class="primary-button">Entrar</button>
+            </form>
+            {% if error %}
+                <p class="error">{{ error }}</p>
+            {% endif %}
+        </section>
+    </main>
+</body>
+</html>

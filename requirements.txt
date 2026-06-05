@@ -1,0 +1,7 @@
+playwright
+pandas
+openpyxl
+flask
+supabase
+python-dotenv
+gunicorn

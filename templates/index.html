@@ -1,0 +1,830 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>LeadMaps</title>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <main class="page">
+        <header class="topbar">
+            <div>
+                <span class="eyebrow">Prospeccao local</span>
+                <h1>LeadMaps</h1>
+                <p>Pesquise empresas no Google Maps, filtre oportunidades e baixe a planilha Excel.</p>
+            </div>
+        </header>
+
+        <section class="card search-card">
+            <form method="post" class="search-form" id="lead-form">
+                <label>
+                    Nicho
+                    <input type="text" name="nicho" value="{{ form.nicho }}" placeholder="Ex: Psicologo" required>
+                </label>
+
+                <label>
+                    Cidade
+                    <input type="text" name="cidade" value="{{ form.cidade }}" placeholder="Ex: Montenegro RS" required>
+                </label>
+
+                <label>
+                    Quantidade de resultados para analisar
+                    <input type="number" name="limite" value="{{ form.limite }}" min="1" placeholder="100">
+                </label>
+
+                <label>
+                    Avalia&ccedil;&otilde;es m&aacute;ximas
+                    <input type="number" name="avaliacoes_maximas" value="{{ form.avaliacoes_maximas }}" min="0" placeholder="Ex: 20">
+                </label>
+
+                <div class="checks">
+                    <label class="check">
+                        <input type="checkbox" name="apenas_com_telefone" {% if form.apenas_com_telefone %}checked{% endif %}>
+                        Apenas com telefone
+                    </label>
+
+                    <label class="check">
+                        <input type="checkbox" name="apenas_sem_site" {% if form.apenas_sem_site %}checked{% endif %}>
+                        Apenas sem site
+                    </label>
+                </div>
+
+                <button type="submit" class="primary-button" id="search-button">
+                    Buscar Leads
+                </button>
+            </form>
+
+            <div class="loading-box" id="loading-box" aria-live="polite">
+                <span class="spinner"></span>
+                <div>
+                    <strong>Buscando empresas...</strong>
+                    <p>A busca pode levar alguns minutos.</p>
+                </div>
+            </div>
+
+            {% if error %}
+                <p class="error">{{ error }}</p>
+            {% endif %}
+
+            {% if searched and stats.mensagem_exportacao %}
+                <p class="notice">{{ stats.mensagem_exportacao }}</p>
+            {% endif %}
+
+            {% if reset_summary %}
+                <p class="notice success">
+                    {{ reset_summary.message }}
+                    {% if reset_summary.backup %}Backup criado em: {{ reset_summary.backup }}{% endif %}
+                </p>
+            {% endif %}
+        </section>
+
+        <section class="card import-card">
+            <div>
+                <span class="eyebrow">Importar feedback</span>
+                <h2>Importar planilha de feedback</h2>
+                <p>Use uma planilha .xlsx marcada com amarelo para SUCESSO e vermelho para BURN.</p>
+            </div>
+
+            <form method="post" action="{{ url_for('importar_planilha') }}" enctype="multipart/form-data" class="import-form">
+                <label>
+                    Planilha Excel
+                    <input type="file" name="planilha" accept=".xlsx" required>
+                </label>
+                <button type="submit" class="primary-button">Importar planilha</button>
+            </form>
+
+            <form method="post" action="{{ url_for('resetar_base') }}" class="reset-form" onsubmit="return confirm('Tem certeza que deseja resetar a base? Um backup sera criado antes.');">
+                <button type="submit" class="button danger">Resetar base de leads</button>
+            </form>
+
+            {% if import_summary %}
+                <div class="import-summary">
+                    <strong>Resumo da importa&ccedil;&atilde;o</strong>
+                    <ul>
+                        <li>Total de linhas lidas: {{ import_summary.total_linhas }}</li>
+                        <li>Sucessos importados: {{ import_summary.sucessos_importados }}</li>
+                        <li>Burns importados: {{ import_summary.burns_importados }}</li>
+                        <li>Novos importados: {{ import_summary.novos_importados }}</li>
+                        <li>Duplicados ignorados: {{ import_summary.duplicados_ignorados }}</li>
+                        <li>Novos adicionados: {{ import_summary.novos_adicionados }}</li>
+                        <li>Existentes atualizados: {{ import_summary.existentes_atualizados }}</li>
+                        <li>Total final da base: {{ import_summary.total_final_base }}</li>
+                        <li>Restantes para abordar: {{ import_summary.restantes_para_abordar }}</li>
+                    </ul>
+                    {% if import_summary.backup %}
+                        <p>Backup criado em: {{ import_summary.backup }}</p>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </section>
+
+        {% if searched and not error %}
+            <section class="stats-grid">
+                <article class="stat-card">
+                    <span>Total da base</span>
+                    <strong id="total-leads">{{ approach_stats.total_leads }}</strong>
+                </article>
+
+                <article class="stat-card">
+                    <span>Restantes para abordar</span>
+                    <strong id="remaining-queue">{{ approach_stats.restantes_para_abordar }}</strong>
+                </article>
+
+                <article class="stat-card">
+                    <span>Novos</span>
+                    <strong id="new-leads">{{ approach_stats.novos }}</strong>
+                </article>
+
+                <article class="stat-card">
+                    <span>Sucesso</span>
+                    <strong id="success-leads">{{ approach_stats.sucesso }}</strong>
+                </article>
+
+                <article class="stat-card">
+                    <span>Burn</span>
+                    <strong id="burn-leads">{{ approach_stats.burn }}</strong>
+                </article>
+
+                <article class="stat-card">
+                    <span>Mensagens enviadas hoje</span>
+                    <strong id="sent-today">{{ approach_stats.mensagens_enviadas_hoje }}</strong>
+                </article>
+
+                <article class="stat-card">
+                    <span>Taxa WhatsApp valido</span>
+                    <strong id="whatsapp-rate">{{ approach_stats.taxa_whatsapp_valido }}%</strong>
+                </article>
+
+                <article class="stat-card">
+                    <span>Meta diaria</span>
+                    <strong id="daily-goal">{{ approach_stats.meta_diaria }}</strong>
+                </article>
+
+                <article class="stat-card">
+                    <span>Faltam para meta</span>
+                    <strong id="goal-left">{{ approach_stats.faltam_para_meta }}</strong>
+                </article>
+
+                <article class="stat-card">
+                    <span>Estimativa para finalizar</span>
+                    <strong id="finish-estimate">
+                        {% if approach_stats.estimativa_finalizar == "" %}Defina uma meta diaria{% else %}{{ approach_stats.estimativa_finalizar }} dias{% endif %}
+                    </strong>
+                </article>
+
+                <article class="stat-card">
+                    <span>Enviados na semana</span>
+                    <strong id="sent-week">{{ approach_stats.mensagens_enviadas_semana }}</strong>
+                </article>
+
+                <article class="stat-card">
+                    <span>Enviados no mes</span>
+                    <strong id="sent-month">{{ approach_stats.mensagens_enviadas_mes }}</strong>
+                </article>
+
+                <article class="stat-card">
+                    <span>Leads adicionados na &uacute;ltima raspagem</span>
+                    <strong>{{ stats.novos_adicionados }}</strong>
+                </article>
+
+                <article class="stat-card">
+                    <span>Duplicados ignorados na &uacute;ltima raspagem</span>
+                    <strong>{{ stats.duplicados_ignorados }}</strong>
+                </article>
+
+                <article class="stat-card">
+                    <span>Empresas analisadas</span>
+                    <strong>{{ stats.empresas_analisadas }}</strong>
+                </article>
+
+                <article class="stat-card">
+                    <span>Leads encontrados na raspagem</span>
+                    <strong>{{ stats.leads_raspagem }}</strong>
+                </article>
+
+                <article class="stat-card">
+                    <span>Total geral da base</span>
+                    <strong>{{ stats.total_geral_base }}</strong>
+                </article>
+
+                <article class="stat-card">
+                    <span>Sem site</span>
+                    <strong>{{ stats.leads_sem_site }}</strong>
+                </article>
+
+                <article class="stat-card">
+                    <span>Com telefone</span>
+                    <strong>{{ stats.leads_com_telefone }}</strong>
+                </article>
+
+                <article class="stat-card">
+                    <span>Descartados sem telefone</span>
+                    <strong>{{ stats.descartados_sem_telefone }}</strong>
+                </article>
+
+                <article class="stat-card">
+                    <span>Descartados com site</span>
+                    <strong>{{ stats.descartados_possui_site }}</strong>
+                </article>
+
+                <article class="stat-card">
+                    <span>Descartados por avalia&ccedil;&otilde;es</span>
+                    <strong>{{ stats.descartados_avaliacoes }}</strong>
+                </article>
+
+                <article class="stat-card">
+                    <span>Total descartado</span>
+                    <strong>{{ stats.total_descartado }}</strong>
+                </article>
+            </section>
+
+            <section class="card pipeline-card">
+                <div class="queue-notice" id="queue-notice">
+                    <span id="queue-notice-open" class="{% if approach_stats.novos == 0 %}is-hidden{% endif %}">
+                        Voce ainda possui <strong id="queue-notice-count">{{ approach_stats.novos }}</strong> contatos para tratar.
+                    </span>
+                    <span id="queue-notice-done" class="{% if approach_stats.novos > 0 %}is-hidden{% endif %}">
+                        Todos os contatos foram tratados. Voce pode fazer uma nova raspagem.
+                    </span>
+                    <a class="button muted" href="{{ url_for('index') }}">Nova raspagem</a>
+                </div>
+
+                <div class="pipeline-header">
+                    <div>
+                        <span class="eyebrow">Operacao manual</span>
+                        <h2>Esteira de abordagem</h2>
+                    </div>
+                    <div class="pipeline-tools">
+                        <span class="badge status-novo" id="pipeline-status">
+                            {% if pipeline_lead %}{{ pipeline_lead["Status abordagem"] }}{% else %}FINALIZADO{% endif %}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="pipeline-empty {% if not pipeline_lead %}is-visible{% endif %}" id="pipeline-empty">
+                    <strong>Todos os contatos foram tratados. Voce pode fazer uma nova raspagem.</strong>
+                    <a class="button muted" href="{{ url_for('index') }}">Nova raspagem</a>
+                </div>
+
+                <div
+                    class="pipeline-body {% if not pipeline_lead %}is-hidden{% endif %}"
+                    id="pipeline-body"
+                    data-lead-id="{% if pipeline_lead %}{{ pipeline_lead['Lead ID'] }}{% endif %}"
+                    data-whatsapp="{% if pipeline_lead %}{{ pipeline_lead['WhatsApp'] }}{% endif %}"
+                    data-queue-filter="{{ queue_filter }}"
+                >
+                    <div class="pipeline-main">
+                        <h3 id="pipeline-name">{% if pipeline_lead %}{{ pipeline_lead["Nome"] }}{% endif %}</h3>
+                        <p id="pipeline-phone">{% if pipeline_lead %}{{ pipeline_lead["Telefone"] }}{% endif %}</p>
+                    </div>
+
+                    <dl class="pipeline-details">
+                        <div>
+                            <dt>Cidade</dt>
+                            <dd id="pipeline-city">{% if pipeline_lead %}{{ pipeline_lead["Cidade"] }}{% endif %}</dd>
+                        </div>
+                        <div>
+                            <dt>Endereco</dt>
+                            <dd id="pipeline-address">{% if pipeline_lead %}{{ pipeline_lead["Endereco"] }}{% endif %}</dd>
+                        </div>
+                        <div>
+                            <dt>Site</dt>
+                            <dd id="pipeline-site">{% if pipeline_lead %}{{ pipeline_lead["Site"] or "-" }}{% endif %}</dd>
+                        </div>
+                        <div>
+                            <dt>Nota</dt>
+                            <dd id="pipeline-rating">{% if pipeline_lead %}{{ pipeline_lead["Nota"] }}{% endif %}</dd>
+                        </div>
+                        <div>
+                            <dt>Avaliacoes</dt>
+                            <dd id="pipeline-reviews">{% if pipeline_lead %}{{ pipeline_lead["Quantidade de avaliacoes"] }}{% endif %}</dd>
+                        </div>
+                        <div>
+                            <dt>Oportunidade</dt>
+                            <dd><span class="badge" id="pipeline-opportunity">{% if pipeline_lead %}{{ pipeline_lead["Oportunidade"] }}{% endif %}</span></dd>
+                        </div>
+                    </dl>
+
+                    <div class="pipeline-actions">
+                        <a class="button download" id="pipeline-whatsapp" href="{% if pipeline_lead %}{{ pipeline_lead['WhatsApp'] }}{% else %}#{% endif %}" target="_blank" rel="noopener">Conversar no WhatsApp</a>
+                        <button type="button" class="button muted" id="pipeline-skip">Pular contato</button>
+                        <button type="button" class="button danger" id="pipeline-burn">Marcar como BURN</button>
+                        <button type="button" class="button subtle" id="pipeline-undo">Desfazer ultimo</button>
+                    </div>
+                </div>
+            </section>
+
+            <section class="card downloads-card">
+                <div>
+                    <span class="eyebrow">Arquivos</span>
+                    <h2>Downloads</h2>
+                </div>
+                <div class="actions">
+                    <a class="button download" href="{{ url_for('download') }}">Baixar Excel</a>
+                    <a class="button muted" href="{{ url_for('download_historico') }}">Baixar historico completo</a>
+                </div>
+            </section>
+
+            <section class="card scrape-history">
+                <div>
+                    <span class="eyebrow">Historico</span>
+                    <h2>Ultimas raspagens</h2>
+                </div>
+                {% if scrapes_history %}
+                    <div class="scrape-list">
+                        {% for scrape in scrapes_history %}
+                            <article>
+                                <strong>{{ scrape.nicho or "-" }} em {{ scrape.cidade or "-" }}</strong>
+                                <span>{{ scrape.data_hora }}</span>
+                                <p>
+                                    Encontrados: {{ scrape.leads_encontrados }} |
+                                    Novos: {{ scrape.novos_adicionados }} |
+                                    Duplicados: {{ scrape.duplicados_ignorados }} |
+                                    Base: {{ scrape.total_geral_base }}
+                                </p>
+                            </article>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="muted-text">Nenhuma raspagem registrada ainda.</p>
+                {% endif %}
+            </section>
+
+            <section class="card results">
+                <div class="treated-alert {% if approach_stats.novos == 0 and approach_stats.total_leads > 0 %}is-visible{% endif %}" id="treated-alert">
+                    <strong>Todos os contatos foram tratados.</strong>
+                    <a class="button muted" href="{{ url_for('index') }}">Nova raspagem</a>
+                </div>
+
+                <div class="results-header">
+                    <div>
+                        <span class="eyebrow">Resultados</span>
+                        <h2>{{ leads|length }} leads em {{ status_filter }}</h2>
+                        <p class="search-meta">
+                            Busca conclu&iacute;da em {{ elapsed_time }}.
+                            &Uacute;ltima pesquisa: {{ last_search_at }}.
+                        </p>
+                    </div>
+                    <div class="actions">
+                        <button type="button" class="button muted" id="show-list">Ver lista completa</button>
+                        <button type="button" class="button muted is-hidden" id="hide-list">Ocultar lista</button>
+                    </div>
+                </div>
+
+                <nav class="status-tabs" aria-label="Filtros de status">
+                    {% for option in status_options %}
+                        <a class="tab {% if status_filter == option %}is-active{% endif %}" href="{{ url_for('index', status=option) }}">{{ option }}</a>
+                    {% endfor %}
+                </nav>
+
+                <div class="table-wrap is-collapsed" id="full-list">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Telefone</th>
+                                <th>WhatsApp</th>
+                                <th>Endere&ccedil;o</th>
+                                <th>Site</th>
+                                <th>Nota</th>
+                                <th>Quantidade de avalia&ccedil;&otilde;es</th>
+                                <th>Cidade</th>
+                                <th>Tem Site?</th>
+                                <th>Oportunidade</th>
+                                <th>Status abordagem</th>
+                                <th>WhatsApp v&aacute;lido?</th>
+                                <th>Mensagem enviada?</th>
+                                <th>Observa&ccedil;&atilde;o</th>
+                                <th>Data/hora do feedback</th>
+                                <th>Link Google Maps</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if leads %}
+                                {% for lead in leads %}
+                                    <tr
+                                        data-lead-id="{{ lead['Lead ID'] }}"
+                                        data-name="{{ lead['Nome'] }}"
+                                        data-phone="{{ lead['Telefone'] }}"
+                                        data-whatsapp="{{ lead['WhatsApp'] }}"
+                                        class="lead-row status-{{ lead['Status abordagem']|lower }}"
+                                    >
+                                        <td class="name-cell">{{ lead["Nome"] }}</td>
+                                        <td>{{ lead["Telefone"] }}</td>
+                                        <td>
+                                            {% if lead["WhatsApp"] %}
+                                                <a class="mini-button whatsapp js-open-feedback" href="{{ lead['WhatsApp'] }}" target="_blank" rel="noopener">Conversar</a>
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ lead["Endereco"] }}</td>
+                                        <td>
+                                            {% if lead["Site"] %}
+                                                <a class="mini-button muted" href="{{ lead['Site'] }}" target="_blank" rel="noopener">Abrir site</a>
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ lead["Nota"] }}</td>
+                                        <td>{{ lead["Quantidade de avaliacoes"] }}</td>
+                                        <td>{{ lead["Cidade"] }}</td>
+                                        <td>
+                                            <span class="badge">{{ lead["Tem Site?"] }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge opportunity-{{ lead['Oportunidade']|lower }}">{{ lead["Oportunidade"] }}</span>
+                                        </td>
+                                        <td class="feedback-status">
+                                            <span class="badge status-badge status-{{ lead['Status abordagem']|lower }}">{{ lead["Status abordagem"] }}</span>
+                                        </td>
+                                        <td class="feedback-whatsapp">{{ lead["WhatsApp valido?"] }}</td>
+                                        <td class="feedback-message">{{ lead["Mensagem enviada?"] }}</td>
+                                        <td class="feedback-note">{{ lead["Observacao"] }}</td>
+                                        <td class="feedback-date">{{ lead["Data/hora do feedback"] }}</td>
+                                        <td>
+                                            <a class="mini-button maps" href="{{ lead['Link do Google Maps'] }}" target="_blank" rel="noopener">Ver no Maps</a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="16" class="empty">Nenhum lead encontrado com os filtros escolhidos.</td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        {% endif %}
+
+        <footer class="footer">
+            LeadMaps &copy; 2026
+        </footer>
+    </main>
+
+    <div class="modal-backdrop" id="feedback-modal" aria-hidden="true">
+        <div class="modal">
+            <div class="modal-header">
+                <div>
+                    <span class="eyebrow">Feedback do lead</span>
+                    <h3 id="modal-lead-name">Lead</h3>
+                    <p id="modal-lead-phone"></p>
+                </div>
+                <button type="button" class="icon-button" id="modal-close">x</button>
+            </div>
+
+            <a class="button download modal-whatsapp" id="modal-whatsapp" target="_blank" rel="noopener">Conversar no WhatsApp</a>
+
+            <form id="feedback-form" class="feedback-form">
+                <input type="hidden" name="lead_id" id="modal-lead-id">
+
+                <label>
+                    WhatsApp v&aacute;lido?
+                    <select name="whatsapp_valido" id="modal-whatsapp-valid" required>
+                        <option value="SIM">SIM</option>
+                        <option value="NAO">NAO</option>
+                    </select>
+                </label>
+
+                <label>
+                    Mensagem "Ol&aacute;" enviada?
+                    <select name="mensagem_enviada" id="modal-message-sent" required>
+                        <option value="SIM">SIM</option>
+                        <option value="NAO">NAO</option>
+                    </select>
+                </label>
+
+                <label class="full-field">
+                    Observa&ccedil;&atilde;o
+                    <textarea name="observacao" id="modal-note" rows="4" placeholder="Opcional"></textarea>
+                </label>
+
+                <div class="modal-actions">
+                    <button type="submit" class="primary-button" id="modal-save-next">Salvar e proximo</button>
+                    <button type="button" class="button muted" id="modal-cancel">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById("lead-form");
+        const button = document.getElementById("search-button");
+        const loadingBox = document.getElementById("loading-box");
+
+        form.addEventListener("submit", () => {
+            form.classList.add("is-submitting");
+            button.textContent = "Buscando empresas...";
+            button.disabled = true;
+            loadingBox.classList.add("is-visible");
+        });
+
+        const modal = document.getElementById("feedback-modal");
+        const feedbackForm = document.getElementById("feedback-form");
+        const modalLeadId = document.getElementById("modal-lead-id");
+        const modalLeadName = document.getElementById("modal-lead-name");
+        const modalLeadPhone = document.getElementById("modal-lead-phone");
+        const modalWhatsapp = document.getElementById("modal-whatsapp");
+        const modalWhatsappValid = document.getElementById("modal-whatsapp-valid");
+        const modalMessageSent = document.getElementById("modal-message-sent");
+        const modalNote = document.getElementById("modal-note");
+        const treatedAlert = document.getElementById("treated-alert");
+        const pipelineBody = document.getElementById("pipeline-body");
+        const pipelineEmpty = document.getElementById("pipeline-empty");
+        const pipelineStatus = document.getElementById("pipeline-status");
+        const pipelineWhatsapp = document.getElementById("pipeline-whatsapp");
+        let activeRow = null;
+        let modalMode = "table";
+        let saveAndNext = false;
+
+        function updateApproachStats(stats) {
+            const setText = (id, value) => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.textContent = value;
+                }
+            };
+
+            setText("total-leads", stats.total_leads);
+            setText("new-leads", stats.novos);
+            setText("success-leads", stats.sucesso);
+            setText("burn-leads", stats.burn);
+            setText("sent-today", stats.mensagens_enviadas_hoje);
+            setText("sent-week", stats.mensagens_enviadas_semana);
+            setText("sent-month", stats.mensagens_enviadas_mes);
+            setText("remaining-queue", stats.restantes_para_abordar);
+            setText("approached-today", stats.abordados_hoje);
+            setText("success-today", stats.sucesso_hoje);
+            setText("burn-today", stats.burn_hoje);
+            setText("daily-goal", stats.meta_diaria);
+            setText("goal-left", stats.faltam_para_meta);
+            setText("whatsapp-rate", `${stats.taxa_whatsapp_valido}%`);
+            setText("finish-estimate", stats.estimativa_finalizar === "" ? "Defina uma meta diaria" : `${stats.estimativa_finalizar} dias`);
+
+            const queueNoticeOpen = document.getElementById("queue-notice-open");
+            const queueNoticeDone = document.getElementById("queue-notice-done");
+            const queueNoticeCount = document.getElementById("queue-notice-count");
+
+            if (queueNoticeCount) {
+                queueNoticeCount.textContent = stats.novos;
+            }
+
+            if (queueNoticeOpen && queueNoticeDone) {
+                if (stats.novos > 0) {
+                    queueNoticeOpen.classList.remove("is-hidden");
+                    queueNoticeDone.classList.add("is-hidden");
+                } else {
+                    queueNoticeOpen.classList.add("is-hidden");
+                    queueNoticeDone.classList.remove("is-hidden");
+                }
+            }
+
+            if (treatedAlert && stats.novos === 0 && stats.total_leads > 0) {
+                treatedAlert.classList.add("is-visible");
+            } else if (treatedAlert) {
+                treatedAlert.classList.remove("is-visible");
+            }
+        }
+
+        function openModal(row) {
+            activeRow = row;
+            modalMode = "table";
+            saveAndNext = false;
+            modalLeadId.value = row.dataset.leadId;
+            modalLeadName.textContent = row.dataset.name || "Lead";
+            modalLeadPhone.textContent = row.dataset.phone || "";
+            modalWhatsapp.href = row.dataset.whatsapp || "#";
+            modalWhatsappValid.value = row.querySelector(".feedback-whatsapp").textContent.trim() || "SIM";
+            modalMessageSent.value = row.querySelector(".feedback-message").textContent.trim() || "SIM";
+            modalNote.value = row.querySelector(".feedback-note").textContent.trim();
+            modal.classList.add("is-visible");
+            modal.setAttribute("aria-hidden", "false");
+        }
+
+        function renderPipelineLead(lead) {
+            if (!pipelineBody || !pipelineEmpty || !pipelineStatus) {
+                return;
+            }
+
+            if (!lead) {
+                pipelineBody.classList.add("is-hidden");
+                pipelineEmpty.classList.add("is-visible");
+                pipelineStatus.textContent = "FINALIZADO";
+                return;
+            }
+
+            pipelineBody.classList.remove("is-hidden");
+            pipelineEmpty.classList.remove("is-visible");
+            pipelineBody.dataset.leadId = lead["Lead ID"];
+            pipelineBody.dataset.whatsapp = lead["WhatsApp"];
+            pipelineStatus.textContent = lead["Status abordagem"];
+            document.getElementById("pipeline-name").textContent = lead["Nome"] || "";
+            document.getElementById("pipeline-phone").textContent = lead["Telefone"] || "";
+            document.getElementById("pipeline-city").textContent = lead["Cidade"] || "";
+            document.getElementById("pipeline-address").textContent = lead["Endereco"] || "";
+            document.getElementById("pipeline-site").textContent = lead["Site"] || "-";
+            document.getElementById("pipeline-rating").textContent = lead["Nota"] || "";
+            document.getElementById("pipeline-reviews").textContent = lead["Quantidade de avaliacoes"] || "";
+            document.getElementById("pipeline-opportunity").textContent = lead["Oportunidade"] || "";
+            pipelineWhatsapp.href = lead["WhatsApp"] || "#";
+        }
+
+        function openPipelineModal() {
+            modalMode = "pipeline";
+            saveAndNext = true;
+            activeRow = null;
+            modalLeadId.value = pipelineBody.dataset.leadId;
+            modalLeadName.textContent = document.getElementById("pipeline-name").textContent || "Lead";
+            modalLeadPhone.textContent = document.getElementById("pipeline-phone").textContent || "";
+            modalWhatsapp.href = pipelineBody.dataset.whatsapp || "#";
+            modalWhatsappValid.value = "SIM";
+            modalMessageSent.value = "SIM";
+            modalNote.value = "";
+            modal.classList.add("is-visible");
+            modal.setAttribute("aria-hidden", "false");
+        }
+
+        async function markPending(row) {
+            if (!row.classList.contains("status-novo")) {
+                return;
+            }
+
+            const response = await fetch("{{ url_for('esteira_abrir_whatsapp') }}", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({lead_id: row.dataset.leadId}),
+            });
+            const data = await response.json();
+
+            if (!data.ok) {
+                return;
+            }
+
+            updateApproachStats(data.approach_stats);
+        }
+
+        function closeModal() {
+            modal.classList.remove("is-visible");
+            modal.setAttribute("aria-hidden", "true");
+        }
+
+        document.querySelectorAll(".js-open-feedback").forEach((button) => {
+            button.addEventListener("click", () => {
+                const row = button.closest("tr");
+                markPending(row);
+                openModal(row);
+            });
+        });
+
+        document.getElementById("modal-close").addEventListener("click", closeModal);
+        document.getElementById("modal-cancel").addEventListener("click", closeModal);
+        document.getElementById("modal-save-next").addEventListener("click", () => {
+            saveAndNext = true;
+        });
+
+        if (pipelineWhatsapp) {
+        pipelineWhatsapp.addEventListener("click", async () => {
+            if (!pipelineBody.dataset.leadId) {
+                return;
+            }
+
+            const response = await fetch("{{ url_for('esteira_abrir_whatsapp') }}", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({
+                    lead_id: pipelineBody.dataset.leadId,
+                    fila: pipelineBody.dataset.queueFilter || "NOVO",
+                }),
+            });
+            const data = await response.json();
+
+            if (data.ok) {
+                updateApproachStats(data.approach_stats);
+                openPipelineModal();
+            }
+        });
+        }
+
+        const pipelineSkip = document.getElementById("pipeline-skip");
+        const skippedLeadIds = new Set();
+        if (pipelineSkip) {
+        pipelineSkip.addEventListener("click", async () => {
+            skippedLeadIds.add(pipelineBody.dataset.leadId);
+            const response = await fetch("{{ url_for('esteira_pular') }}", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({lead_id: pipelineBody.dataset.leadId}),
+            });
+            const data = await response.json();
+
+            if (data.ok) {
+                renderPipelineLead(data.next_lead);
+                updateApproachStats(data.approach_stats);
+            }
+        });
+        }
+
+        const pipelineUndo = document.getElementById("pipeline-undo");
+        if (pipelineUndo) {
+        pipelineUndo.addEventListener("click", async () => {
+            const response = await fetch("{{ url_for('esteira_desfazer') }}", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({}),
+            });
+            const data = await response.json();
+
+            if (data.ok) {
+                renderPipelineLead(data.next_lead);
+                updateApproachStats(data.approach_stats);
+                if (data.message) {
+                    alert(data.message);
+                }
+            }
+        });
+        }
+
+        const pipelineBurn = document.getElementById("pipeline-burn");
+        if (pipelineBurn) {
+        pipelineBurn.addEventListener("click", async () => {
+            const response = await fetch("{{ url_for('esteira_burn') }}", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({lead_id: pipelineBody.dataset.leadId}),
+            });
+            const data = await response.json();
+
+            if (data.ok) {
+                renderPipelineLead(data.next_lead);
+                updateApproachStats(data.approach_stats);
+            }
+        });
+        }
+
+        feedbackForm.addEventListener("submit", async (event) => {
+            event.preventDefault();
+
+            const payload = {
+                lead_id: modalLeadId.value,
+                whatsapp_valido: modalWhatsappValid.value,
+                mensagem_enviada: modalMessageSent.value,
+                observacao: modalNote.value,
+            };
+
+            const url = "{{ url_for('esteira_feedback') }}";
+            const response = await fetch(url, {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify(payload),
+            });
+            const data = await response.json();
+
+            if (!data.ok) {
+                alert(data.error || "Nao foi possivel salvar o feedback.");
+                return;
+            }
+
+            if (modalMode === "table" && activeRow) {
+                const now = new Date().toISOString().slice(0, 19).replace("T", " ");
+                const finalStatus = payload.whatsapp_valido === "SIM" && payload.mensagem_enviada === "SIM" ? "SUCESSO" : "BURN";
+                activeRow.classList.remove("status-novo", "status-pendente", "status-sucesso", "status-burn");
+                activeRow.classList.add(`status-${finalStatus.toLowerCase()}`);
+                activeRow.querySelector(".feedback-status").innerHTML = `<span class="badge status-badge status-${finalStatus.toLowerCase()}">${finalStatus}</span>`;
+                activeRow.querySelector(".feedback-whatsapp").textContent = payload.whatsapp_valido;
+                activeRow.querySelector(".feedback-message").textContent = payload.mensagem_enviada;
+                activeRow.querySelector(".feedback-note").textContent = payload.observacao;
+                activeRow.querySelector(".feedback-date").textContent = now;
+            }
+
+            if (data.next_lead !== undefined) {
+                renderPipelineLead(data.next_lead);
+            }
+
+            updateApproachStats(data.approach_stats);
+
+            closeModal();
+        });
+
+        const showList = document.getElementById("show-list");
+        const hideList = document.getElementById("hide-list");
+        const fullList = document.getElementById("full-list");
+
+        if (showList && hideList && fullList) {
+            showList.addEventListener("click", () => {
+                fullList.classList.remove("is-collapsed");
+                showList.classList.add("is-hidden");
+                hideList.classList.remove("is-hidden");
+            });
+
+            hideList.addEventListener("click", () => {
+                fullList.classList.add("is-collapsed");
+                hideList.classList.add("is-hidden");
+                showList.classList.remove("is-hidden");
+            });
+        }
+    </script>
+</body>
+</html>
