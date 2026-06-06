@@ -363,6 +363,38 @@ def setup_auto_log() -> None:
     LOG_FILE = ROOT / "logs" / f"coleta_{timestamp}.txt"
 
 
+def parse_comma_list(value: str) -> list[str]:
+    return [item.strip() for item in value.split(",") if item.strip()]
+
+
+def update_summary(summary: dict, result: dict) -> None:
+    summary["buscas_executadas"] += 1
+    summary["leads_encontrados"] += result["encontrados"]
+    summary["com_telefone"] += result["com_telefone"]
+    summary["sem_telefone"] += result["sem_telefone"]
+    summary["novos_enviados"] += result["novos"]
+    summary["duplicados"] += result["duplicados"]
+
+
+def log_search_result(result: dict) -> None:
+    log(f"Encontrados: {result['encontrados']}")
+    log(f"Com telefone: {result['com_telefone']}")
+    log(f"Sem telefone descartados: {result['sem_telefone']}")
+    log(f"Novos enviados: {result['novos']}")
+    log(f"Duplicados: {result['duplicados']}")
+    log("Status: cidade finalizada")
+    log(f"Tempo da busca: {format_elapsed(result['tempo'])}")
+
+
+def estimated_eta(started_at: float, completed: int, total: int) -> str:
+    if completed <= 0:
+        return "calculando"
+    elapsed = perf_counter() - started_at
+    average = elapsed / completed
+    remaining = max(0, total - completed)
+    return format_elapsed(average * remaining)
+
+
 def run_manual() -> None:
     segment = input("Digite o segmento: ").strip()
     city = input("Digite a cidade: ").strip()
@@ -404,13 +436,13 @@ def run_auto() -> None:
     client = supabase_client()
     existing_keys = load_existing_keys(client)
     summary = {
-        "cidades_processadas": 0,
-        "total_encontrados": 0,
-        "total_com_telefone": 0,
-        "total_sem_telefone": 0,
-        "total_novos": 0,
-        "total_duplicados": 0,
-        "total_erros": 0,
+        "buscas_executadas": 0,
+        "leads_encontrados": 0,
+        "com_telefone": 0,
+        "sem_telefone": 0,
+        "novos_enviados": 0,
+        "duplicados": 0,
+        "erros": 0,
     }
 
     for index, city in enumerate(cities, start=1):
@@ -418,21 +450,10 @@ def run_auto() -> None:
         log(f"[{index}/{len(cities)}] Buscando {segment} em {city}")
         try:
             result = collect_and_send_city(client, existing_keys, segment, city, None)
-            summary["cidades_processadas"] += 1
-            summary["total_encontrados"] += result["encontrados"]
-            summary["total_com_telefone"] += result["com_telefone"]
-            summary["total_sem_telefone"] += result["sem_telefone"]
-            summary["total_novos"] += result["novos"]
-            summary["total_duplicados"] += result["duplicados"]
-            log(f"Encontrados: {result['encontrados']}")
-            log(f"Com telefone: {result['com_telefone']}")
-            log(f"Sem telefone descartados: {result['sem_telefone']}")
-            log(f"Novos enviados: {result['novos']}")
-            log(f"Duplicados: {result['duplicados']}")
-            log("Status: cidade finalizada")
-            log(f"Tempo da cidade: {format_elapsed(result['tempo'])}")
+            update_summary(summary, result)
+            log_search_result(result)
         except Exception as exc:
-            summary["total_erros"] += 1
+            summary["erros"] += 1
             log(f"Erro na cidade {city}: {exc}")
 
         if index < len(cities):
@@ -444,13 +465,83 @@ def run_auto() -> None:
     log("")
     log("Prospecção finalizada.")
     log(f"Nicho: {segment}")
-    log(f"Cidades processadas: {summary['cidades_processadas']}")
-    log(f"Total encontrados: {summary['total_encontrados']}")
-    log(f"Total com telefone: {summary['total_com_telefone']}")
-    log(f"Total sem telefone descartados: {summary['total_sem_telefone']}")
-    log(f"Total novos enviados: {summary['total_novos']}")
-    log(f"Total duplicados: {summary['total_duplicados']}")
-    log(f"Total erros: {summary['total_erros']}")
+    log(f"Cidades processadas: {summary['buscas_executadas']}")
+    log(f"Total encontrados: {summary['leads_encontrados']}")
+    log(f"Total com telefone: {summary['com_telefone']}")
+    log(f"Total sem telefone descartados: {summary['sem_telefone']}")
+    log(f"Total novos enviados: {summary['novos_enviados']}")
+    log(f"Total duplicados: {summary['duplicados']}")
+    log(f"Total erros: {summary['erros']}")
+    log(f"Tempo total: {format_elapsed(total_elapsed)}")
+    log(f"Arquivo de log: {LOG_FILE}")
+
+
+def run_mega() -> None:
+    setup_auto_log()
+    started_at = perf_counter()
+    segments = parse_comma_list(input("Digite os nichos (separados por virgula): ").strip())
+    cities = parse_comma_list(input("Digite as cidades (separadas por virgula): ").strip())
+
+    if not segments:
+        raise RuntimeError("Informe pelo menos um nicho.")
+    if not cities:
+        raise RuntimeError("Informe pelo menos uma cidade.")
+
+    searches = [(segment, city) for segment in segments for city in cities]
+    total_searches = len(searches)
+
+    log("[1] Iniciando busca")
+    log("Modo: mega")
+    log(f"Nichos: {', '.join(segments)}")
+    log(f"Cidades: {', '.join(cities)}")
+    log(f"Buscas planejadas: {total_searches}")
+
+    client = supabase_client()
+    existing_keys = load_existing_keys(client)
+    summary = {
+        "buscas_executadas": 0,
+        "leads_encontrados": 0,
+        "com_telefone": 0,
+        "sem_telefone": 0,
+        "novos_enviados": 0,
+        "duplicados": 0,
+        "erros": 0,
+    }
+
+    for index, (segment, city) in enumerate(searches, start=1):
+        log("")
+        log(f"[{index}/{total_searches}]")
+        log("Buscando:")
+        log(f"{segment} em {city}")
+        log(f"ETA estimado: {estimated_eta(started_at, index - 1, total_searches)}")
+
+        try:
+            result = collect_and_send_city(client, existing_keys, segment, city, None)
+            update_summary(summary, result)
+            log_search_result(result)
+        except Exception as exc:
+            summary["erros"] += 1
+            log(f"Erro na busca {segment} em {city}: {exc}")
+
+        completed = summary["buscas_executadas"] + summary["erros"]
+        log(f"Progresso: {completed}/{total_searches}")
+        log(f"ETA estimado: {estimated_eta(started_at, completed, total_searches)}")
+
+        if index < total_searches:
+            pause = random.randint(10, 20)
+            log(f"Pausa de {pause}s antes da proxima busca.")
+            time.sleep(pause)
+
+    total_elapsed = perf_counter() - started_at
+    executed_searches = summary["buscas_executadas"] + summary["erros"]
+    log("")
+    log("Prospecção massiva finalizada.")
+    log(f"Buscas executadas: {executed_searches}")
+    log(f"Leads encontrados: {summary['leads_encontrados']}")
+    log(f"Com telefone: {summary['com_telefone']}")
+    log(f"Duplicados: {summary['duplicados']}")
+    log(f"Novos enviados: {summary['novos_enviados']}")
+    log(f"Erros: {summary['erros']}")
     log(f"Tempo total: {format_elapsed(total_elapsed)}")
     log(f"Arquivo de log: {LOG_FILE}")
 
@@ -458,6 +549,7 @@ def run_auto() -> None:
 def parse_args() -> Namespace:
     parser = ArgumentParser(description="Coletor local de leads do LeadMaps.")
     parser.add_argument("--auto", action="store_true", help="Executa o nicho em todas as cidades do cidades.txt.")
+    parser.add_argument("--mega", action="store_true", help="Executa todas as combinacoes de nichos e cidades.")
     return parser.parse_args()
 
 
@@ -467,6 +559,10 @@ def main() -> None:
 
     if args.auto:
         run_auto()
+        return
+
+    if args.mega:
+        run_mega()
         return
 
     run_manual()

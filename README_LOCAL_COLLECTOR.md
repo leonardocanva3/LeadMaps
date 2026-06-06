@@ -78,6 +78,37 @@ Psicologa em Limeira SP
 
 Ele roda cidade por cidade ate finalizar os resultados do Google Maps. Nao existe limite fixo de contatos por cidade no modo automatico.
 
+## 7. Rodar modo massivo
+
+```powershell
+python local_collector.py --mega
+```
+
+O terminal vai pedir:
+
+```text
+Digite os nichos (separados por virgula):
+Digite as cidades (separadas por virgula):
+```
+
+Exemplo:
+
+```text
+Digite os nichos (separados por virgula): Psicologa,Dentista,Advogado,Fisioterapeuta
+Digite as cidades (separadas por virgula): Piracicaba SP,Campinas SP,Limeira SP,Americana SP
+```
+
+O modo massivo gera automaticamente todas as combinacoes de nicho + cidade e executa cada busca em sequencia:
+
+```text
+Psicologa em Piracicaba SP
+Psicologa em Campinas SP
+Dentista em Piracicaba SP
+Dentista em Campinas SP
+```
+
+Durante a execucao, ele mostra o progresso `[atual/total]`, a busca atual e um ETA estimado. Assim como no modo automatico, ele coleta ate finalizar os resultados do Google Maps, salva apenas leads com telefone, remove duplicados e continua mesmo se uma busca der erro.
+
 ## Criterio de parada
 
 O coletor continua rolando a lista enquanto surgem novos resultados. A cidade e considerada finalizada quando:
@@ -104,10 +135,10 @@ Os inserts usam `upsert` em `unique_key`, a mesma coluna unica usada pelo dashbo
 
 ## Logs
 
-No modo automatico, o coletor cria:
+Nos modos automatico e massivo, o coletor cria:
 
 ```text
 logs/coleta_YYYY-MM-DD_HH-MM.txt
 ```
 
-O log registra inicio, nicho, cidades carregadas, cidade atual, busca executada, encontrados, com telefone, sem telefone descartados, duplicados, novos enviados ao Supabase, erros por cidade, tempo por cidade e resumo final.
+O log registra inicio, nichos, cidades, busca atual, busca executada, encontrados, com telefone, sem telefone descartados, duplicados, novos enviados ao Supabase, ETA, erros, tempo por busca e resumo final.
