@@ -1,7 +1,10 @@
 from pathlib import Path
+from contextlib import suppress
 from datetime import datetime, timedelta
 from hashlib import sha1
 import json
+import logging
+from time import perf_counter
 from unicodedata import normalize
 from urllib.parse import quote_plus
 
@@ -13,6 +16,9 @@ from playwright.sync_api import sync_playwright
 
 from src import storage as storage_backend
 
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 EXPORT_PATH = Path("exports/leads.xlsx")
 ACTIVE_EXPORT_PATH = Path("exports/leads_ativos.xlsx")
@@ -28,6 +34,7 @@ LAST_ACTIVE_EXPORT_PATH = ACTIVE_EXPORT_PATH
 LAST_HISTORY_EXPORT_PATH = HISTORY_EXPORT_PATH
 COUNTRY_CODE = "55"
 MAX_COMPANIES = 100
+TEMP_MAX_RESULTS = 10
 SCROLL_ATTEMPTS = 8
 EXPORT_COLUMNS = [
     "Nome",
@@ -1228,9 +1235,10 @@ def extract_company_data(page) -> dict:
 
 def open_google_maps(page, niche: str, city: str) -> None:
     """Abre o Google Maps ja com a busca preenchida."""
+    logger.info("ABRINDO GOOGLE MAPS")
     search = quote_plus(f"{niche} em {city}")
     url = f"https://www.google.com/maps/search/{search}"
-    page.goto(url, wait_until="domcontentloaded", timeout=60000)
+    page.goto(url, wait_until="domcontentloaded", timeout=15000)
     page.wait_for_timeout(5000)
 
 
@@ -1239,7 +1247,9 @@ def collect_result_links(page, limit: int) -> list[str]:
     links = []
     feed = page.locator("div[role='feed']")
     result_limit = max(1, limit)
-    max_scrolls = max(SCROLL_ATTEMPTS, result_limit // 5 + 10)
+    max_scrolls = min(SCROLL_ATTEMPTS, max(2, result_limit // 5 + 2))
+
+    logger.info("COLETANDO RESULTADOS")
 
     for _ in range(max_scrolls):
         result_links = page.locator("a.hfpxzc").all()
@@ -1375,8 +1385,22 @@ def buscar_leads(
     diagnostico: bool = True,
 ) -> list[dict] | tuple[list[dict], dict]:
     """Busca leads no Google Maps, aplica filtros e exporta o Excel."""
+    logger.info("INICIO RASPAGEM")
+    started_at = perf_counter()
+    step_started_at = started_at
+    timings = {}
+
+    def finish_step(name: str) -> None:
+        nonlocal step_started_at
+        now = perf_counter()
+        timings[name] = round(now - step_started_at, 2)
+        logger.info("Tempo %s: %.2fs", name, timings[name])
+        step_started_at = now
+
     leads = []
-    result_limit = max(1, int(limite or MAX_COMPANIES))
+    requested_limit = max(1, int(limite or MAX_COMPANIES))
+    max_results = TEMP_MAX_RESULTS
+    result_limit = min(requested_limit, max_results)
     stats = {
         "empresas_analisadas": 0,
         "leads_encontrados": 0,
@@ -1393,9 +1417,14 @@ def buscar_leads(
         "total_descartado": 0,
         "arquivo_excel": "",
         "mensagem_exportacao": "",
+        "limite_solicitado": requested_limit,
+        "limite_aplicado": result_limit,
+        "tempos_raspagem": {},
+        "ponto_provavel_timeout": "",
     }
 
     with sync_playwright() as playwright:
+        logger.info("ABRINDO PLAYWRIGHT")
         browser = playwright.chromium.launch(
             headless=True,
             args=[
@@ -1405,16 +1434,24 @@ def buscar_leads(
                 "--disable-setuid-sandbox",
             ],
         )
+        context = None
+        page = None
         try:
-            page = browser.new_page(locale="pt-BR")
+            context = browser.new_context(locale="pt-BR")
+            page = context.new_page()
+            page.set_default_timeout(15000)
+            finish_step("abrir_playwright")
 
             open_google_maps(page, nicho, cidade)
+            finish_step("abrir_google_maps")
+
             result_links = collect_result_links(page, result_limit)
             stats["empresas_analisadas"] = len(result_links)
+            finish_step("coletar_resultados")
 
             for index, link in enumerate(result_links, start=1):
-                print(f"Analisando {index} de {len(result_links)}")
-                page.goto(link, wait_until="domcontentloaded", timeout=60000)
+                logger.info("Analisando %s de %s", index, len(result_links))
+                page.goto(link, wait_until="domcontentloaded", timeout=15000)
                 page.wait_for_timeout(2500)
 
                 company = extract_company_data(page)
@@ -1449,10 +1486,19 @@ def buscar_leads(
                         stats["descartados_avaliacoes"] += 1
                     elif reason_key == "cidade_diferente":
                         stats["descartados_cidade"] += 1
+            finish_step("analisar_empresas")
         finally:
-            browser.close()
+            if page is not None:
+                with suppress(Exception):
+                    page.close()
+            if context is not None:
+                with suppress(Exception):
+                    context.close()
+            with suppress(Exception):
+                browser.close()
 
     export_result = export_to_excel(leads)
+    finish_step("exportar_excel")
     master, merge_summary = upsert_leads_from_scrape(
         leads,
         {
@@ -1465,6 +1511,7 @@ def buscar_leads(
     )
     export_feedback_excels(master)
     enriched_leads = enrich_leads_with_feedback(master)
+    finish_step("atualizar_base")
 
     stats["leads_raspagem"] = len(leads)
     stats["leads_encontrados"] = len(enriched_leads)
@@ -1475,6 +1522,12 @@ def buscar_leads(
     stats["leads_sem_site"] = sum(1 for lead in enriched_leads if not lead["Site"])
     stats["arquivo_excel"] = str(export_result["path"])
     stats["mensagem_exportacao"] = export_result["message"]
+    stats["tempos_raspagem"] = timings
+    stats["ponto_provavel_timeout"] = max(timings, key=timings.get, default="")
+
+    logger.info("Relatorio de tempos da raspagem: %s", timings)
+    logger.info("Ponto provavel do timeout: %s", stats["ponto_provavel_timeout"])
+    logger.info("FIM RASPAGEM")
 
     if diagnostico:
         print("\nResumo do diagnostico")
