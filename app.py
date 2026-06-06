@@ -1,4 +1,5 @@
 from pathlib import Path
+from importlib.metadata import PackageNotFoundError, version
 import os
 from time import perf_counter
 from datetime import datetime
@@ -47,7 +48,7 @@ def require_optional_password():
     if not password:
         return None
 
-    allowed_endpoints = {"login", "static"}
+    allowed_endpoints = {"debug_playwright", "login", "static"}
 
     if request.endpoint in allowed_endpoints or session.get("authenticated"):
         return None
@@ -154,6 +155,34 @@ def parse_optional_int(value: str) -> int | None:
         return None
 
     return max(0, int(value))
+
+
+@app.route("/debug-playwright")
+def debug_playwright():
+    browsers_path = Path("/opt/render/project/.playwright-browsers")
+
+    try:
+        playwright_version = version("playwright")
+    except PackageNotFoundError:
+        playwright_version = None
+
+    folders = []
+    if browsers_path.exists():
+        folders = [
+            path.name
+            for path in sorted(browsers_path.iterdir())
+            if path.is_dir()
+        ][:10]
+
+    return jsonify(
+        {
+            "playwright_version": playwright_version,
+            "playwright_browsers_path": os.getenv("PLAYWRIGHT_BROWSERS_PATH"),
+            "render_browsers_path": str(browsers_path),
+            "render_browsers_path_exists": browsers_path.exists(),
+            "render_browsers_path_folders": folders,
+        }
+    )
 
 
 @app.route("/", methods=["GET", "POST"])

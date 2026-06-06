@@ -1,4 +1,4 @@
-playwright
+playwright==1.53.0
 pandas
 openpyxl
 flask
