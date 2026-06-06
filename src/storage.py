@@ -57,6 +57,7 @@ FEEDBACK_COLUMNS = [
 ]
 FULL_EXPORT_COLUMNS = EXPORT_COLUMNS + FEEDBACK_COLUMNS
 STATUS_PRIORITY = {"NOVO": 1, "PENDENTE": 2, "SUCESSO": 3, "BURN": 3}
+PAGE_SIZE = 100
 
 
 def get_storage() -> str:
@@ -162,6 +163,191 @@ def supabase_client():
     return create_client(url, key)
 
 
+def _supabase_count(query) -> int:
+    try:
+        result = query.select("*", count="exact", head=True).execute()
+    except TypeError:
+        result = query.select("*", count="exact").limit(0).execute()
+
+    return int(result.count or 0)
+
+
+def count_leads(
+    status: str | None = None,
+    date_column: str | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
+) -> int:
+    if get_storage() == "local":
+        leads = [normalize_master_lead(lead) for lead in load_json(MASTER_LEADS_PATH, [])]
+        if status and status != "TODOS":
+            leads = [lead for lead in leads if lead.get("status_abordagem", "NOVO") == status]
+        if date_column and date_from:
+            leads = [lead for lead in leads if str(lead.get(date_column, ""))[:10] >= date_from[:10]]
+        if date_column and date_to:
+            leads = [lead for lead in leads if str(lead.get(date_column, ""))[:10] < date_to[:10]]
+        return len(leads)
+
+    query = supabase_client().table("leads")
+    if status and status != "TODOS":
+        query = query.eq("status_abordagem", status)
+    if date_column and date_from:
+        query = query.gte(date_column, date_from)
+    if date_column and date_to:
+        query = query.lt(date_column, date_to)
+    return _supabase_count(query)
+
+
+def count_leads_with_phone() -> int:
+    if get_storage() == "local":
+        return sum(1 for lead in load_json(MASTER_LEADS_PATH, []) if clean_digits(lead.get("Telefone", "")))
+
+    client = supabase_client()
+    total = _supabase_count(client.table("leads"))
+    empty_count = _supabase_count(client.table("leads").eq("telefone_limpo", ""))
+    null_count = _supabase_count(client.table("leads").is_("telefone_limpo", "null"))
+    return max(0, total - empty_count - null_count)
+
+
+def count_leads_without_site() -> int:
+    if get_storage() == "local":
+        return sum(1 for lead in load_json(MASTER_LEADS_PATH, []) if not lead.get("Site", ""))
+
+    client = supabase_client()
+    empty_count = _supabase_count(client.table("leads").eq("site", ""))
+    null_count = _supabase_count(client.table("leads").is_("site", "null"))
+    return empty_count + null_count
+
+
+def count_feedbacks(
+    mensagem_enviada: str | None = None,
+    whatsapp_valido: str | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
+) -> int:
+    if get_storage() == "local":
+        feedbacks = load_json(FEEDBACKS_PATH, {}).values()
+        total = 0
+        for feedback in feedbacks:
+            if mensagem_enviada and feedback.get("Mensagem enviada?") != mensagem_enviada:
+                continue
+            if whatsapp_valido and feedback.get("WhatsApp valido?") != whatsapp_valido:
+                continue
+            created_at = feedback.get("Data/hora do feedback", "")
+            if date_from and created_at[:10] < date_from[:10]:
+                continue
+            if date_to and created_at[:10] >= date_to[:10]:
+                continue
+            total += 1
+        return total
+
+    query = supabase_client().table("feedbacks")
+    if mensagem_enviada:
+        query = query.eq("mensagem_enviada", mensagem_enviada)
+    if whatsapp_valido:
+        query = query.eq("whatsapp_valido", whatsapp_valido)
+    if date_from:
+        query = query.gte("created_at", date_from)
+    if date_to:
+        query = query.lt("created_at", date_to)
+    return _supabase_count(query)
+
+
+def load_leads_page(status: str = "NOVO", page: int = 1, page_size: int = PAGE_SIZE) -> list[dict]:
+    page = max(1, int(page or 1))
+    page_size = max(1, int(page_size or PAGE_SIZE))
+
+    if get_storage() == "local":
+        leads = [normalize_master_lead(lead) for lead in load_json(MASTER_LEADS_PATH, [])]
+        if status != "TODOS":
+            leads = [lead for lead in leads if lead.get("status_abordagem", "NOVO") == status]
+        start = (page - 1) * page_size
+        return leads[start:start + page_size]
+
+    start = (page - 1) * page_size
+    end = start + page_size - 1
+    query = supabase_client().table("leads").select("*").order("created_at", desc=True)
+    if status != "TODOS":
+        query = query.eq("status_abordagem", status)
+    rows = query.range(start, end).execute().data or []
+    return [db_to_lead(row) for row in rows]
+
+
+def get_lead_by_unique_key(lead_unique_key: str) -> dict | None:
+    if get_storage() == "local":
+        for lead in load_json(MASTER_LEADS_PATH, []):
+            normalized = normalize_master_lead(lead)
+            if normalized.get("Lead ID") == lead_unique_key:
+                return normalized
+        return None
+
+    rows = (
+        supabase_client()
+        .table("leads")
+        .select("*")
+        .eq("unique_key", lead_unique_key)
+        .limit(1)
+        .execute()
+        .data
+        or []
+    )
+    return db_to_lead(rows[0]) if rows else None
+
+
+def update_lead_record(lead_unique_key: str, fields: dict) -> None:
+    if get_storage() == "local":
+        leads = [normalize_master_lead(lead) for lead in load_json(MASTER_LEADS_PATH, [])]
+        for lead in leads:
+            if lead.get("Lead ID") != lead_unique_key:
+                continue
+            lead.update(fields)
+            break
+        save_json(MASTER_LEADS_PATH, leads)
+        return
+
+    db_fields = {
+        "status_abordagem": fields.get("status_abordagem"),
+        "whatsapp_valido": fields.get("whatsapp_valido"),
+        "mensagem_enviada": fields.get("mensagem_enviada"),
+        "observacao": fields.get("observacao"),
+        "data_primeira_abordagem": fields.get("data_primeira_abordagem") or None,
+        "data_ultimo_feedback": fields.get("data_ultimo_feedback") or None,
+        "ultima_acao": fields.get("ultima_acao"),
+        "updated_at": datetime.utcnow().isoformat(),
+    }
+    db_fields = {key: value for key, value in db_fields.items() if value is not None}
+    if db_fields:
+        supabase_client().table("leads").update(db_fields).eq("unique_key", lead_unique_key).execute()
+
+
+def get_next_lead(status_filter: str = "NOVO", skipped_ids: list[str] | None = None) -> dict | None:
+    skipped = set(skipped_ids or [])
+
+    if get_storage() == "local":
+        leads = [
+            normalize_master_lead(lead)
+            for lead in load_json(MASTER_LEADS_PATH, [])
+            if normalize_master_lead(lead).get("status_abordagem", "NOVO") == status_filter
+        ]
+        leads.sort(key=lambda lead: ({"ALTA": 0, "MEDIA": 1, "BAIXA": 2}.get(lead.get("Oportunidade", "BAIXA"), 3), lead.get("Adicionado em", "")))
+        return next((lead for lead in leads if lead.get("Lead ID") not in skipped), None)
+
+    query = (
+        supabase_client()
+        .table("leads")
+        .select("*")
+        .eq("status_abordagem", status_filter)
+        .order("created_at", desc=False)
+        .limit(20)
+    )
+    rows = query.execute().data or []
+    for row in rows:
+        lead = db_to_lead(row)
+        if lead.get("Lead ID") not in skipped:
+            return lead
+    return None
+
+
 def lead_to_db(lead: dict) -> dict:
     normalized = normalize_master_lead(lead)
     return {
@@ -203,6 +389,11 @@ def db_to_lead(row: dict) -> dict:
             "Tem Site?": row.get("tem_site", ""),
             "Oportunidade": row.get("oportunidade", ""),
             "Link do Google Maps": row.get("link_google_maps", ""),
+            "Status abordagem": row.get("status_abordagem", "NOVO"),
+            "WhatsApp valido?": row.get("whatsapp_valido", ""),
+            "Mensagem enviada?": row.get("mensagem_enviada", ""),
+            "Observacao": row.get("observacao", ""),
+            "Data/hora do feedback": row.get("data_ultimo_feedback") or "",
             "status_abordagem": row.get("status_abordagem", "NOVO"),
             "data_primeira_abordagem": row.get("data_primeira_abordagem") or "",
             "data_ultimo_feedback": row.get("data_ultimo_feedback") or "",

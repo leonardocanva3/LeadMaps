@@ -419,6 +419,10 @@ def upsert_leads_from_scrape(
 
     save_master_leads(master)
 
+    total_base = len(master)
+    if storage_backend.get_storage() == "supabase":
+        total_base = storage_backend.count_leads()
+
     summary = {
         "data_hora": now,
         "nicho": scrape_info.get("nicho", ""),
@@ -428,7 +432,7 @@ def upsert_leads_from_scrape(
         "leads_encontrados": len(new_leads),
         "novos_adicionados": added,
         "duplicados_ignorados": duplicates,
-        "total_geral_base": len(master),
+        "total_geral_base": total_base,
     }
     register_scrape_history(summary)
     return master, summary
@@ -699,6 +703,54 @@ def update_lead_status(
     record_action: bool = True,
 ) -> tuple[list[dict], dict]:
     """Atualiza status, feedbacks e planilhas em um unico ponto."""
+    if storage_backend.get_storage() == "supabase":
+        lead = storage_backend.get_lead_by_unique_key(lead_id)
+        if not lead:
+            return [], prospecting_stats([])
+
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        previous_feedback = default_feedback(lead.get("status_abordagem", "NOVO"))
+        before = snapshot_lead(lead, previous_feedback)
+        first_approach = lead.get("data_primeira_abordagem", "")
+        if set_first_approach and not first_approach:
+            first_approach = now
+
+        storage_backend.update_lead_record(
+            lead_id,
+            {
+                "status_abordagem": status,
+                "whatsapp_valido": whatsapp_valido,
+                "mensagem_enviada": mensagem_enviada,
+                "observacao": observacao.strip(),
+                "data_primeira_abordagem": first_approach,
+                "data_ultimo_feedback": now,
+                "ultima_acao": ultima_acao,
+            },
+        )
+        feedback_payload = {
+            "Status abordagem": status,
+            "WhatsApp valido?": whatsapp_valido,
+            "Mensagem enviada?": mensagem_enviada,
+            "Observacao": observacao.strip(),
+            "Data/hora do feedback": now,
+            "Data ultimo feedback": now,
+            "Data primeira abordagem": first_approach,
+            "Ultima acao": ultima_acao,
+        }
+        if record_action:
+            after = dict(lead)
+            after.update(
+                {
+                    "status_abordagem": status,
+                    "data_primeira_abordagem": first_approach,
+                    "data_ultimo_feedback": now,
+                    "ultima_acao": ultima_acao,
+                }
+            )
+            record_recent_action(ultima_acao, lead_id, before, snapshot_lead(after, feedback_payload))
+        storage_backend.add_feedback(lead_id, feedback_payload)
+        return [], prospecting_stats([])
+
     master = [normalize_master_lead(lead) for lead in load_master_leads()]
     feedbacks = load_feedbacks()
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -760,6 +812,65 @@ def prospecting_stats(leads: list[dict]) -> dict:
     now = datetime.now()
     week_start = (now - timedelta(days=now.weekday())).date()
     month_start = now.replace(day=1).date()
+    tomorrow = (now + timedelta(days=1)).strftime("%Y-%m-%d")
+
+    if storage_backend.get_storage() == "supabase":
+        total = storage_backend.count_leads()
+        new = storage_backend.count_leads("NOVO")
+        pending = storage_backend.count_leads("PENDENTE")
+        success = storage_backend.count_leads("SUCESSO")
+        burn = storage_backend.count_leads("BURN")
+        sent_today = storage_backend.count_feedbacks("SIM", date_from=today, date_to=tomorrow)
+        sent_week = storage_backend.count_feedbacks("SIM", date_from=week_start.isoformat())
+        sent_month = storage_backend.count_feedbacks("SIM", date_from=month_start.strftime("%Y-%m-%d"))
+        approached_today = storage_backend.count_leads(
+            date_column="data_primeira_abordagem",
+            date_from=today,
+            date_to=tomorrow,
+        )
+        success_today = storage_backend.count_leads(
+            "SUCESSO",
+            date_column="data_ultimo_feedback",
+            date_from=today,
+            date_to=tomorrow,
+        )
+        burn_today = storage_backend.count_leads(
+            "BURN",
+            date_column="data_ultimo_feedback",
+            date_from=today,
+            date_to=tomorrow,
+        )
+        pending_today = storage_backend.count_leads(
+            "PENDENTE",
+            date_column="data_primeira_abordagem",
+            date_from=today,
+            date_to=tomorrow,
+        )
+        daily_goal = 50
+        remaining_queue = new
+        finished_contacts = success + burn
+        whatsapp_valid_rate = round((success / finished_contacts) * 100) if finished_contacts else 0
+        estimated_days = (remaining_queue + daily_goal - 1) // daily_goal if daily_goal else ""
+
+        return {
+            "total_leads": total,
+            "novos": new,
+            "pendentes": pending,
+            "sucesso": success,
+            "burn": burn,
+            "mensagens_enviadas_hoje": sent_today,
+            "mensagens_enviadas_semana": sent_week,
+            "mensagens_enviadas_mes": sent_month,
+            "restantes_para_abordar": remaining_queue,
+            "abordados_hoje": approached_today,
+            "sucesso_hoje": success_today,
+            "burn_hoje": burn_today,
+            "pendentes_gerados_hoje": pending_today,
+            "meta_diaria": daily_goal,
+            "faltam_para_meta": max(0, daily_goal - approached_today),
+            "estimativa_finalizar": estimated_days,
+            "taxa_whatsapp_valido": whatsapp_valid_rate,
+        }
 
     def sent_reference_date(lead: dict):
         reference_date = (
@@ -945,6 +1056,9 @@ def get_next_lead_for_queue(status_filter: str = "NOVO", skipped_ids: list[str] 
     """Retorna o proximo lead da fila por status."""
     skipped = set(skipped_ids or [])
     requested_status = (status_filter or "NOVO").upper()
+    if storage_backend.get_storage() == "supabase":
+        return storage_backend.get_next_lead(requested_status, list(skipped))
+
     leads = enrich_leads_with_feedback(load_master_leads())
     queue = [
         lead
@@ -964,6 +1078,30 @@ def get_next_pipeline_lead(skip_id: str = "", status_filter: str = "NOVO") -> di
 
 def mark_pipeline_pending(lead_id: str) -> tuple[dict | None, dict]:
     """Registra abertura do WhatsApp sem mudar o status para PENDENTE."""
+    if storage_backend.get_storage() == "supabase":
+        lead = storage_backend.get_lead_by_unique_key(lead_id)
+        if not lead:
+            return get_next_pipeline_lead(), prospecting_stats([])
+
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        before = snapshot_lead(lead, default_feedback(lead.get("status_abordagem", "NOVO")))
+        first_approach = lead.get("data_primeira_abordagem") or now
+        storage_backend.update_lead_record(
+            lead_id,
+            {
+                "data_primeira_abordagem": first_approach,
+                "ultima_acao": "WhatsApp aberto",
+            },
+        )
+        feedback = default_feedback(lead.get("status_abordagem", "NOVO"))
+        feedback["Data primeira abordagem"] = first_approach
+        feedback["Ultima acao"] = "WhatsApp aberto"
+        after = dict(lead)
+        after["data_primeira_abordagem"] = first_approach
+        after["ultima_acao"] = "WhatsApp aberto"
+        record_recent_action("WhatsApp aberto", lead_id, before, snapshot_lead(after, feedback))
+        return get_next_pipeline_lead(), prospecting_stats([])
+
     master = [normalize_master_lead(lead) for lead in load_master_leads()]
     feedbacks = load_feedbacks()
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -992,6 +1130,17 @@ def mark_pipeline_pending(lead_id: str) -> tuple[dict | None, dict]:
 
 def skip_pipeline_lead(lead_id: str, status_filter: str = "NOVO") -> tuple[dict | None, dict]:
     """Registra contato pulado sem alterar status final."""
+    if storage_backend.get_storage() == "supabase":
+        lead = storage_backend.get_lead_by_unique_key(lead_id)
+        if lead:
+            before = snapshot_lead(lead, default_feedback(lead.get("status_abordagem", "NOVO")))
+            storage_backend.update_lead_record(lead_id, {"ultima_acao": "Contato pulado"})
+            after = dict(lead)
+            after["ultima_acao"] = "Contato pulado"
+            record_recent_action("Contato pulado", lead_id, before, snapshot_lead(after, default_feedback(lead.get("status_abordagem", "NOVO"))))
+        next_lead = get_next_pipeline_lead(lead_id, status_filter)
+        return next_lead, prospecting_stats([])
+
     master = [normalize_master_lead(lead) for lead in load_master_leads()]
     feedbacks = load_feedbacks()
 
@@ -1021,6 +1170,9 @@ def burn_pipeline_lead(lead_id: str) -> tuple[dict | None, dict]:
             "ultima_acao": "Marcado como BURN",
         },
     )
+    if storage_backend.get_storage() == "supabase":
+        return get_next_pipeline_lead(), prospecting_stats([])
+
     enriched = enrich_leads_with_feedback(load_master_leads())
     return get_next_pipeline_lead(), prospecting_stats(enriched)
 
@@ -1030,6 +1182,9 @@ def undo_last_pipeline_action() -> tuple[dict | None, dict, str]:
     actions = load_recent_actions()
 
     if not actions:
+        if storage_backend.get_storage() == "supabase":
+            return get_next_pipeline_lead(), prospecting_stats([]), "Nenhuma acao recente para desfazer."
+
         enriched = enrich_leads_with_feedback(load_master_leads())
         return get_next_pipeline_lead(), prospecting_stats(enriched), "Nenhuma acao recente para desfazer."
 
@@ -1038,6 +1193,22 @@ def undo_last_pipeline_action() -> tuple[dict | None, dict, str]:
     previous = action.get("before", {})
     previous_lead = previous.get("lead", {})
     previous_feedback = previous.get("feedback", {})
+    if storage_backend.get_storage() == "supabase":
+        save_recent_actions(actions)
+        if lead_id and previous_lead:
+            storage_backend.update_lead_record(
+                lead_id,
+                {
+                    "status_abordagem": previous_lead.get("status_abordagem", "NOVO"),
+                    "data_primeira_abordagem": previous_lead.get("data_primeira_abordagem", ""),
+                    "data_ultimo_feedback": previous_lead.get("data_ultimo_feedback", ""),
+                    "ultima_acao": previous_lead.get("ultima_acao", ""),
+                },
+            )
+        if lead_id and previous_feedback:
+            storage_backend.add_feedback(lead_id, previous_feedback)
+        return get_next_pipeline_lead(), prospecting_stats([]), "Ultima acao desfeita."
+
     master = [normalize_master_lead(lead) for lead in load_master_leads()]
     feedbacks = load_feedbacks()
 
@@ -1059,16 +1230,26 @@ def undo_last_pipeline_action() -> tuple[dict | None, dict, str]:
     return get_next_pipeline_lead(), prospecting_stats(enriched), "Ultima acao desfeita."
 
 
-def get_pipeline_leads(status_filter: str = "NOVO") -> tuple[list[dict], dict]:
+def get_pipeline_leads(
+    status_filter: str = "NOVO",
+    page: int = 1,
+    page_size: int = storage_backend.PAGE_SIZE,
+) -> tuple[list[dict], dict]:
     """Retorna a base mestra filtrada para a tela."""
-    enriched = enrich_leads_with_feedback(load_master_leads())
     status = (status_filter or "NOVO").upper()
+    if storage_backend.get_storage() == "supabase":
+        return storage_backend.load_leads_page(status, page, page_size), prospecting_stats([])
+
+    enriched = enrich_leads_with_feedback(load_master_leads())
 
     if status != "TODOS":
         enriched = [lead for lead in enriched if lead.get("Status abordagem") == status]
 
+    start = (max(1, page) - 1) * page_size
+    enriched_page = enriched[start:start + page_size]
+
     all_leads = enrich_leads_with_feedback(load_master_leads())
-    return enriched, prospecting_stats(all_leads)
+    return enriched_page, prospecting_stats(all_leads)
 
 
 def get_active_export_path() -> Path:
@@ -1514,12 +1695,17 @@ def buscar_leads(
     finish_step("atualizar_base")
 
     stats["leads_raspagem"] = len(leads)
-    stats["leads_encontrados"] = len(enriched_leads)
+    stats["leads_encontrados"] = len(leads)
     stats["novos_adicionados"] = merge_summary["novos_adicionados"]
     stats["duplicados_ignorados"] = merge_summary["duplicados_ignorados"]
     stats["total_geral_base"] = merge_summary["total_geral_base"]
-    stats["leads_com_telefone"] = sum(1 for lead in enriched_leads if clean_digits(lead["Telefone"]))
-    stats["leads_sem_site"] = sum(1 for lead in enriched_leads if not lead["Site"])
+    if storage_backend.get_storage() == "supabase":
+        stats["total_geral_base"] = storage_backend.count_leads()
+        stats["leads_com_telefone"] = storage_backend.count_leads_with_phone()
+        stats["leads_sem_site"] = storage_backend.count_leads_without_site()
+    else:
+        stats["leads_com_telefone"] = sum(1 for lead in enriched_leads if clean_digits(lead["Telefone"]))
+        stats["leads_sem_site"] = sum(1 for lead in enriched_leads if not lead["Site"])
     stats["arquivo_excel"] = str(export_result["path"])
     stats["mensagem_exportacao"] = export_result["message"]
     stats["tempos_raspagem"] = timings

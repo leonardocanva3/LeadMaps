@@ -14,6 +14,7 @@
                 <span class="eyebrow">Prospeccao local</span>
                 <h1>LeadMaps</h1>
                 <p>Pesquise empresas no Google Maps, filtre oportunidades e baixe a planilha Excel.</p>
+                <p class="search-meta">&Uacute;ltima atualiza&ccedil;&atilde;o: <span id="last-updated">{{ last_updated_at | default("") }}</span></p>
             </div>
         </header>
 
@@ -361,9 +362,22 @@
                 <div class="results-header">
                     <div>
                         <span class="eyebrow">Resultados</span>
-                        <h2>{{ leads|length }} leads em {{ status_filter }}</h2>
+                        <h2>
+                            {% if pagination is defined %}
+                                {{ pagination.total_items }} leads em {{ status_filter }}
+                            {% else %}
+                                {{ leads|length }} leads em {{ status_filter }}
+                            {% endif %}
+                        </h2>
                         <p class="search-meta">
-                            Busca conclu&iacute;da em {{ elapsed_time }}.
+                            Exibindo
+                            {% if pagination is defined %}
+                                {{ pagination.start }}-{{ pagination.end }}
+                            {% else %}
+                                {{ leads|length }}
+                            {% endif %}
+                            por p&aacute;gina.
+                            {% if elapsed_time %}Busca conclu&iacute;da em {{ elapsed_time }}.{% endif %}
                             &Uacute;ltima pesquisa: {{ last_search_at }}.
                         </p>
                     </div>
@@ -378,6 +392,18 @@
                         <a class="tab {% if status_filter == option %}is-active{% endif %}" href="{{ url_for('index', status=option) }}">{{ option }}</a>
                     {% endfor %}
                 </nav>
+
+                {% if pagination is defined and pagination.total_pages > 1 %}
+                    <nav class="status-tabs" aria-label="Paginacao">
+                        {% if pagination.has_previous %}
+                            <a class="tab" href="{{ url_for('index', status=status_filter, page=pagination.page - 1) }}">Anterior</a>
+                        {% endif %}
+                        <span class="tab is-active">P&aacute;gina {{ pagination.page }} de {{ pagination.total_pages }}</span>
+                        {% if pagination.has_next %}
+                            <a class="tab" href="{{ url_for('index', status=status_filter, page=pagination.page + 1) }}">Pr&oacute;xima</a>
+                        {% endif %}
+                    </nav>
+                {% endif %}
 
                 <div class="table-wrap is-collapsed" id="full-list">
                     <table>
@@ -563,6 +589,7 @@
             setText("goal-left", stats.faltam_para_meta);
             setText("whatsapp-rate", `${stats.taxa_whatsapp_valido}%`);
             setText("finish-estimate", stats.estimativa_finalizar === "" ? "Defina uma meta diaria" : `${stats.estimativa_finalizar} dias`);
+            setText("last-updated", new Date().toLocaleTimeString("pt-BR", {hour: "2-digit", minute: "2-digit", second: "2-digit"}));
 
             const queueNoticeOpen = document.getElementById("queue-notice-open");
             const queueNoticeDone = document.getElementById("queue-notice-done");

@@ -7,6 +7,8 @@ from uuid import uuid4
 
 from flask import Flask, jsonify, redirect, render_template, request, send_file, session, url_for
 
+from src import storage as storage_backend
+
 try:
     from dotenv import load_dotenv
 except ImportError:
@@ -90,6 +92,14 @@ def default_form() -> dict:
 
 def default_stats(total_base: int = 0) -> dict:
     """Valores padrao dos cards de raspagem."""
+    leads_com_telefone = 0
+    leads_sem_site = 0
+
+    if storage_backend.get_storage() == "supabase":
+        total_base = storage_backend.count_leads()
+        leads_com_telefone = storage_backend.count_leads_with_phone()
+        leads_sem_site = storage_backend.count_leads_without_site()
+
     return {
         "empresas_analisadas": 0,
         "leads_encontrados": 0,
@@ -97,8 +107,8 @@ def default_stats(total_base: int = 0) -> dict:
         "novos_adicionados": 0,
         "duplicados_ignorados": 0,
         "total_geral_base": total_base,
-        "leads_com_telefone": 0,
-        "leads_sem_site": 0,
+        "leads_com_telefone": leads_com_telefone,
+        "leads_sem_site": leads_sem_site,
         "descartados_sem_telefone": 0,
         "descartados_possui_site": 0,
         "descartados_avaliacoes": 0,
@@ -157,6 +167,35 @@ def parse_optional_int(value: str) -> int | None:
     return max(0, int(value))
 
 
+def parse_page(value: str) -> int:
+    if not value or not value.isdigit():
+        return 1
+    return max(1, int(value))
+
+
+def pagination_for(status_filter: str, approach_stats: dict, page: int) -> dict:
+    status_totals = {
+        "TODOS": approach_stats["total_leads"],
+        "NOVO": approach_stats["novos"],
+        "SUCESSO": approach_stats["sucesso"],
+        "BURN": approach_stats["burn"],
+    }
+    total_items = int(status_totals.get(status_filter, approach_stats["novos"]) or 0)
+    page_size = storage_backend.PAGE_SIZE
+    total_pages = max(1, (total_items + page_size - 1) // page_size)
+    page = min(max(1, page), total_pages)
+    return {
+        "page": page,
+        "page_size": page_size,
+        "total_items": total_items,
+        "total_pages": total_pages,
+        "start": ((page - 1) * page_size) + 1 if total_items else 0,
+        "end": min(page * page_size, total_items),
+        "has_previous": page > 1,
+        "has_next": page < total_pages,
+    }
+
+
 @app.route("/debug-playwright")
 def debug_playwright():
     browsers_path = Path("/opt/render/project/.playwright-browsers")
@@ -188,8 +227,14 @@ def debug_playwright():
 @app.route("/", methods=["GET", "POST"])
 def index():
     status_filter = request.args.get("status", "NOVO").upper()
+    page = parse_page(request.args.get("page", "1"))
     queue_filter = "NOVO"
-    leads, approach_stats = get_pipeline_leads(status_filter)
+    leads, approach_stats = get_pipeline_leads(status_filter, page, storage_backend.PAGE_SIZE)
+    pagination = pagination_for(status_filter, approach_stats, page)
+    if pagination["page"] != page:
+        page = pagination["page"]
+        leads, approach_stats = get_pipeline_leads(status_filter, page, storage_backend.PAGE_SIZE)
+        pagination = pagination_for(status_filter, approach_stats, page)
     pipeline_lead = get_next_pipeline_lead(status_filter=queue_filter)
     error = ""
     searched = bool(approach_stats["total_leads"])
@@ -224,7 +269,9 @@ def index():
                     True,
                 )
                 status_filter = "NOVO"
-                leads, approach_stats = get_pipeline_leads(status_filter)
+                page = 1
+                leads, approach_stats = get_pipeline_leads(status_filter, page, storage_backend.PAGE_SIZE)
+                pagination = pagination_for(status_filter, approach_stats, page)
                 queue_filter = "NOVO"
                 pipeline_lead = get_next_pipeline_lead(status_filter=queue_filter)
                 elapsed_time = format_elapsed(perf_counter() - started_at)
@@ -249,6 +296,8 @@ def index():
         scrapes_history=list(reversed(load_scrapes_history()[-5:])),
         import_summary=import_summary,
         reset_summary=None,
+        pagination=pagination,
+        last_updated_at=datetime.now().strftime("%H:%M:%S"),
     )
 
 
