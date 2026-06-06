@@ -163,11 +163,19 @@ def supabase_client():
     return create_client(url, key)
 
 
-def _supabase_count(query) -> int:
+def _apply_filters(query, filters: list[tuple[str, str, object]] | None = None):
+    for column, operator, value in filters or []:
+        query = query.filter(column, operator, value)
+    return query
+
+
+def _supabase_count(table_name: str, filters: list[tuple[str, str, object]] | None = None) -> int:
     try:
-        result = query.select("*", count="exact", head=True).execute()
+        query = supabase_client().table(table_name).select("*", count="exact", head=True)
+        result = _apply_filters(query, filters).execute()
     except TypeError:
-        result = query.select("*", count="exact").limit(0).execute()
+        query = supabase_client().table(table_name).select("*", count="exact").limit(0)
+        result = _apply_filters(query, filters).execute()
 
     return int(result.count or 0)
 
@@ -188,24 +196,23 @@ def count_leads(
             leads = [lead for lead in leads if str(lead.get(date_column, ""))[:10] < date_to[:10]]
         return len(leads)
 
-    query = supabase_client().table("leads")
+    filters = []
     if status and status != "TODOS":
-        query = query.eq("status_abordagem", status)
+        filters.append(("status_abordagem", "eq", status))
     if date_column and date_from:
-        query = query.gte(date_column, date_from)
+        filters.append((date_column, "gte", date_from))
     if date_column and date_to:
-        query = query.lt(date_column, date_to)
-    return _supabase_count(query)
+        filters.append((date_column, "lt", date_to))
+    return _supabase_count("leads", filters)
 
 
 def count_leads_with_phone() -> int:
     if get_storage() == "local":
         return sum(1 for lead in load_json(MASTER_LEADS_PATH, []) if clean_digits(lead.get("Telefone", "")))
 
-    client = supabase_client()
-    total = _supabase_count(client.table("leads"))
-    empty_count = _supabase_count(client.table("leads").eq("telefone_limpo", ""))
-    null_count = _supabase_count(client.table("leads").is_("telefone_limpo", "null"))
+    total = _supabase_count("leads")
+    empty_count = _supabase_count("leads", [("telefone_limpo", "eq", "")])
+    null_count = _supabase_count("leads", [("telefone_limpo", "is", "null")])
     return max(0, total - empty_count - null_count)
 
 
@@ -213,9 +220,8 @@ def count_leads_without_site() -> int:
     if get_storage() == "local":
         return sum(1 for lead in load_json(MASTER_LEADS_PATH, []) if not lead.get("Site", ""))
 
-    client = supabase_client()
-    empty_count = _supabase_count(client.table("leads").eq("site", ""))
-    null_count = _supabase_count(client.table("leads").is_("site", "null"))
+    empty_count = _supabase_count("leads", [("site", "eq", "")])
+    null_count = _supabase_count("leads", [("site", "is", "null")])
     return empty_count + null_count
 
 
@@ -241,16 +247,16 @@ def count_feedbacks(
             total += 1
         return total
 
-    query = supabase_client().table("feedbacks")
+    filters = []
     if mensagem_enviada:
-        query = query.eq("mensagem_enviada", mensagem_enviada)
+        filters.append(("mensagem_enviada", "eq", mensagem_enviada))
     if whatsapp_valido:
-        query = query.eq("whatsapp_valido", whatsapp_valido)
+        filters.append(("whatsapp_valido", "eq", whatsapp_valido))
     if date_from:
-        query = query.gte("created_at", date_from)
+        filters.append(("created_at", "gte", date_from))
     if date_to:
-        query = query.lt("created_at", date_to)
-    return _supabase_count(query)
+        filters.append(("created_at", "lt", date_to))
+    return _supabase_count("feedbacks", filters)
 
 
 def load_leads_page(status: str = "NOVO", page: int = 1, page_size: int = PAGE_SIZE) -> list[dict]:
@@ -268,7 +274,7 @@ def load_leads_page(status: str = "NOVO", page: int = 1, page_size: int = PAGE_S
     end = start + page_size - 1
     query = supabase_client().table("leads").select("*").order("created_at", desc=True)
     if status != "TODOS":
-        query = query.eq("status_abordagem", status)
+        query = query.filter("status_abordagem", "eq", status)
     rows = query.range(start, end).execute().data or []
     return [db_to_lead(row) for row in rows]
 
@@ -285,7 +291,7 @@ def get_lead_by_unique_key(lead_unique_key: str) -> dict | None:
         supabase_client()
         .table("leads")
         .select("*")
-        .eq("unique_key", lead_unique_key)
+        .filter("unique_key", "eq", lead_unique_key)
         .limit(1)
         .execute()
         .data
@@ -317,7 +323,13 @@ def update_lead_record(lead_unique_key: str, fields: dict) -> None:
     }
     db_fields = {key: value for key, value in db_fields.items() if value is not None}
     if db_fields:
-        supabase_client().table("leads").update(db_fields).eq("unique_key", lead_unique_key).execute()
+        (
+            supabase_client()
+            .table("leads")
+            .update(db_fields)
+            .filter("unique_key", "eq", lead_unique_key)
+            .execute()
+        )
 
 
 def get_next_lead(status_filter: str = "NOVO", skipped_ids: list[str] | None = None) -> dict | None:
@@ -336,7 +348,7 @@ def get_next_lead(status_filter: str = "NOVO", skipped_ids: list[str] | None = N
         supabase_client()
         .table("leads")
         .select("*")
-        .eq("status_abordagem", status_filter)
+        .filter("status_abordagem", "eq", status_filter)
         .order("created_at", desc=False)
         .limit(20)
     )
