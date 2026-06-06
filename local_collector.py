@@ -1,10 +1,13 @@
 from __future__ import annotations
 
-import os
+import random
+import time
+from argparse import ArgumentParser, Namespace
 from contextlib import suppress
 from datetime import datetime
 from hashlib import sha1
 from pathlib import Path
+from time import perf_counter
 from unicodedata import normalize
 from urllib.parse import quote_plus
 
@@ -15,12 +18,20 @@ from supabase import create_client
 
 
 ROOT = Path(__file__).resolve().parent
-MAX_RESULTS = 20
+MANUAL_MAX_RESULTS = 20
+NO_NEW_RESULTS_LIMIT = 8
 COUNTRY_CODE = "55"
+LOG_FILE: Path | None = None
 
 
 def log(message: str) -> None:
     print(message, flush=True)
+    if LOG_FILE is None:
+        return
+
+    LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
+    with LOG_FILE.open("a", encoding="utf-8") as file:
+        file.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} {message}\n")
 
 
 def normalize_text(value: str) -> str:
@@ -80,6 +91,8 @@ def load_env() -> None:
 
 
 def supabase_client():
+    import os
+
     url = os.getenv("SUPABASE_URL", "").strip()
     key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip()
     if not url or not key:
@@ -151,31 +164,60 @@ def extract_lead(page, city: str, segment: str) -> dict:
 
 
 def open_google_maps(page, segment: str, city: str) -> None:
+    search_text = f"{segment} em {city}"
     log("[2] Abrindo Google Maps")
-    search = quote_plus(f"{segment} em {city}")
+    log(f"Busca executada: {search_text}")
+    search = quote_plus(search_text)
     page.goto(f"https://www.google.com/maps/search/{search}", wait_until="domcontentloaded", timeout=30000)
     page.wait_for_timeout(5000)
 
 
-def collect_result_links(page, limit: int) -> list[str]:
+def reached_end_of_results(page) -> bool:
+    with suppress(Exception):
+        body = normalize_text(page.locator("body").inner_text(timeout=1500))
+        return (
+            "voce chegou ao final da lista" in body
+            or "youve reached the end of the list" in body
+            or "you have reached the end of the list" in body
+        )
+    return False
+
+
+def collect_result_links(page, limit: int | None = None) -> list[str]:
     log("[3] Coletando resultados")
     links = []
+    seen = set()
     feed = page.locator("div[role='feed']")
-    max_scrolls = max(4, limit // 5 + 2)
+    no_new_scrolls = 0
 
-    for _ in range(max_scrolls):
+    while True:
+        before_count = len(seen)
         for link in page.locator("a.hfpxzc").all():
             href = link.get_attribute("href")
-            if href and href not in links:
+            if href and href not in seen:
+                seen.add(href)
                 links.append(href)
-            if len(links) >= limit:
+            if limit is not None and len(links) >= limit:
                 return links
+
+        if reached_end_of_results(page):
+            log("Status: final da lista detectado no Google Maps")
+            return links
+
+        if len(seen) == before_count:
+            no_new_scrolls += 1
+        else:
+            no_new_scrolls = 0
+
+        if no_new_scrolls >= NO_NEW_RESULTS_LIMIT:
+            log(f"Status: cidade finalizada apos {NO_NEW_RESULTS_LIMIT} rolagens sem novos resultados")
+            return links
 
         if feed.count() > 0:
             feed.first.evaluate("element => element.scrollBy(0, element.scrollHeight)")
+        else:
+            page.mouse.wheel(0, 2500)
         page.wait_for_timeout(2000)
-
-    return links
 
 
 def load_existing_keys(client) -> set[str]:
@@ -200,7 +242,29 @@ def insert_leads(client, leads: list[dict]) -> None:
     client.table("leads").upsert(leads, on_conflict="unique_key").execute()
 
 
-def collect_leads(segment: str, city: str, limit: int) -> list[dict]:
+def filter_insertable_leads(collected: list[dict], existing_keys: set[str]) -> tuple[list[dict], int, int]:
+    new_leads = []
+    without_phone = 0
+    duplicates = 0
+
+    for lead in collected:
+        if not lead.get("nome") or not lead.get("telefone_limpo"):
+            without_phone += 1
+            log(f"Lead descartado por falta de telefone: {lead.get('nome') or 'Sem nome'}")
+            continue
+
+        keys = identity_keys(lead)
+        if keys.intersection(existing_keys):
+            duplicates += 1
+            continue
+
+        existing_keys.update(keys)
+        new_leads.append(lead)
+
+    return new_leads, without_phone, duplicates
+
+
+def collect_leads(segment: str, city: str, limit: int | None = None) -> list[dict]:
     browser = None
     context = None
     page = None
@@ -246,18 +310,63 @@ def collect_leads(segment: str, city: str, limit: int) -> list[dict]:
     return leads
 
 
-def prompt_limit() -> int:
-    raw_limit = input("Quantidade máxima: ").strip()
-    requested_limit = int(raw_limit) if raw_limit.isdigit() else MAX_RESULTS
-    return max(1, min(requested_limit, MAX_RESULTS))
+def prompt_manual_limit() -> int:
+    raw_limit = input("Quantidade maxima: ").strip()
+    requested_limit = int(raw_limit) if raw_limit.isdigit() else MANUAL_MAX_RESULTS
+    return max(1, min(requested_limit, MANUAL_MAX_RESULTS))
 
 
-def main() -> None:
-    load_env()
+def read_cities() -> list[str]:
+    cities_path = ROOT / "cidades.txt"
+    if not cities_path.exists():
+        raise RuntimeError("Arquivo cidades.txt nao encontrado na raiz do projeto.")
 
+    return [
+        line.strip()
+        for line in cities_path.read_text(encoding="utf-8").splitlines()
+        if line.strip() and not line.strip().startswith("#")
+    ]
+
+
+def collect_and_send_city(client, existing_keys: set[str], segment: str, city: str, limit: int | None = None) -> dict:
+    started_at = perf_counter()
+    collected = collect_leads(segment, city, limit)
+    new_leads, without_phone, duplicates = filter_insertable_leads(collected, existing_keys)
+    insert_leads(client, new_leads)
+    elapsed = perf_counter() - started_at
+    return {
+        "cidade": city,
+        "encontrados": len(collected),
+        "com_telefone": len(new_leads) + duplicates,
+        "sem_telefone": without_phone,
+        "novos": len(new_leads),
+        "duplicados": duplicates,
+        "tempo": elapsed,
+        "erro": "",
+    }
+
+
+def format_elapsed(seconds: float) -> str:
+    total = int(round(seconds))
+    minutes, remaining = divmod(total, 60)
+    hours, minutes = divmod(minutes, 60)
+    if hours:
+        return f"{hours}h {minutes}m {remaining}s"
+    if minutes:
+        return f"{minutes}m {remaining}s"
+    return f"{remaining}s"
+
+
+def setup_auto_log() -> None:
+    global LOG_FILE
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
+    LOG_FILE = ROOT / "logs" / f"coleta_{timestamp}.txt"
+
+
+def run_manual() -> None:
     segment = input("Digite o segmento: ").strip()
     city = input("Digite a cidade: ").strip()
-    limit = prompt_limit()
+    limit = prompt_manual_limit()
 
     if not segment or not city:
         raise RuntimeError("Segmento e cidade sao obrigatorios.")
@@ -265,18 +374,102 @@ def main() -> None:
     log("[1] Iniciando busca")
     client = supabase_client()
     existing_keys = load_existing_keys(client)
-    collected = collect_leads(segment, city, limit)
+    result = collect_and_send_city(client, existing_keys, segment, city, limit)
+    log(
+        "[6] Finalizado. "
+        f"Encontrados: {result['encontrados']} | "
+        f"com telefone: {result['com_telefone']} | "
+        f"sem telefone descartados: {result['sem_telefone']} | "
+        f"novos enviados: {result['novos']} | "
+        f"duplicados: {result['duplicados']}"
+    )
 
-    new_leads = []
-    for lead in collected:
-        keys = identity_keys(lead)
-        if not keys or keys.intersection(existing_keys):
-            continue
-        existing_keys.update(keys)
-        new_leads.append(lead)
 
-    insert_leads(client, new_leads)
-    log(f"[6] Finalizado. Coletados: {len(collected)} | novos enviados: {len(new_leads)}")
+def run_auto() -> None:
+    setup_auto_log()
+    started_at = perf_counter()
+    segment = input("Digite o nicho: ").strip()
+
+    if not segment:
+        raise RuntimeError("Nicho e obrigatorio.")
+
+    cities = read_cities()
+    if not cities:
+        raise RuntimeError("Nenhuma cidade encontrada em cidades.txt.")
+
+    log("[1] Iniciando busca")
+    log(f"Nicho: {segment}")
+    log(f"Cidades carregadas: {len(cities)}")
+
+    client = supabase_client()
+    existing_keys = load_existing_keys(client)
+    summary = {
+        "cidades_processadas": 0,
+        "total_encontrados": 0,
+        "total_com_telefone": 0,
+        "total_sem_telefone": 0,
+        "total_novos": 0,
+        "total_duplicados": 0,
+        "total_erros": 0,
+    }
+
+    for index, city in enumerate(cities, start=1):
+        log("")
+        log(f"[{index}/{len(cities)}] Buscando {segment} em {city}")
+        try:
+            result = collect_and_send_city(client, existing_keys, segment, city, None)
+            summary["cidades_processadas"] += 1
+            summary["total_encontrados"] += result["encontrados"]
+            summary["total_com_telefone"] += result["com_telefone"]
+            summary["total_sem_telefone"] += result["sem_telefone"]
+            summary["total_novos"] += result["novos"]
+            summary["total_duplicados"] += result["duplicados"]
+            log(f"Encontrados: {result['encontrados']}")
+            log(f"Com telefone: {result['com_telefone']}")
+            log(f"Sem telefone descartados: {result['sem_telefone']}")
+            log(f"Novos enviados: {result['novos']}")
+            log(f"Duplicados: {result['duplicados']}")
+            log("Status: cidade finalizada")
+            log(f"Tempo da cidade: {format_elapsed(result['tempo'])}")
+        except Exception as exc:
+            summary["total_erros"] += 1
+            log(f"Erro na cidade {city}: {exc}")
+
+        if index < len(cities):
+            pause = random.randint(10, 20)
+            log(f"Pausa de {pause}s antes da proxima cidade.")
+            time.sleep(pause)
+
+    total_elapsed = perf_counter() - started_at
+    log("")
+    log("Prospecção finalizada.")
+    log(f"Nicho: {segment}")
+    log(f"Cidades processadas: {summary['cidades_processadas']}")
+    log(f"Total encontrados: {summary['total_encontrados']}")
+    log(f"Total com telefone: {summary['total_com_telefone']}")
+    log(f"Total sem telefone descartados: {summary['total_sem_telefone']}")
+    log(f"Total novos enviados: {summary['total_novos']}")
+    log(f"Total duplicados: {summary['total_duplicados']}")
+    log(f"Total erros: {summary['total_erros']}")
+    log(f"Tempo total: {format_elapsed(total_elapsed)}")
+    log(f"Arquivo de log: {LOG_FILE}")
+
+
+def parse_args() -> Namespace:
+    parser = ArgumentParser(description="Coletor local de leads do LeadMaps.")
+    parser.add_argument("--auto", action="store_true", help="Executa o nicho em todas as cidades do cidades.txt.")
+    return parser.parse_args()
+
+
+def main() -> None:
+    load_env()
+    args = parse_args()
+
+    if args.auto:
+        run_auto()
+        return
+
+    run_manual()
 
 
 if __name__ == "__main__":
