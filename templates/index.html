@@ -708,9 +708,31 @@
 
         document.getElementById("modal-close").addEventListener("click", closeModal);
         document.getElementById("modal-cancel").addEventListener("click", closeModal);
-        document.getElementById("modal-save-next").addEventListener("click", () => {
-            saveAndNext = true;
-        });
+        document.getElementById("modal-save-next").addEventListener("click", async (event) => {
+      event.preventDefault();
+
+      const payload = {
+        lead_id: modalLeadId.value,
+        whatsapp_valido: modalWhatsappValid.value,
+        mensagem_enviada: modalMessageSent.value,
+        observacao: modalNote.value,
+      };
+
+      const response = await fetch("{{ url_for('esteira_feedback') }}", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      if (!data.ok) {
+        alert(data.error || "Não foi possível salvar o feedback.");
+        return;
+      }
+
+      window.location.reload();
+    });
 
         if (pipelineWhatsapp) {
         pipelineWhatsapp.addEventListener("click", async () => {
