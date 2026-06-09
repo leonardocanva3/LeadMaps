@@ -562,6 +562,14 @@
         const pipelineEmpty = document.getElementById("pipeline-empty");
         const pipelineStatus = document.getElementById("pipeline-status");
         const pipelineWhatsapp = document.getElementById("pipeline-whatsapp");
+
+    if (pipelineWhatsapp) {
+      pipelineWhatsapp.addEventListener("click", () => {
+        setTimeout(() => {
+          openPipelineModal();
+        }, 300);
+      });
+    }
         let activeRow = null;
         let modalMode = "table";
         let saveAndNext = false;
