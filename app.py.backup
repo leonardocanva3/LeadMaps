@@ -12,7 +12,7 @@ from src import storage as storage_backend
 try:
     from dotenv import load_dotenv
 except ImportError:
-    def load_dotenv(*args, **kwargs):
+    def load_dotenv():
         return False
 
 from src.main import (
@@ -34,13 +34,12 @@ from src.main import (
 
 
 load_dotenv()
-load_dotenv(".env.local", override=True)
 
 app = Flask(__name__)
 app.secret_key = os.getenv("APP_SECRET_KEY", "leadmaps-local-dev")
 
 
-STATUS_OPTIONS = ["NOVO"]
+STATUS_OPTIONS = ["TODOS", "NOVO", "SUCESSO", "BURN"]
 
 
 @app.before_request
@@ -120,26 +119,6 @@ def default_stats(total_base: int = 0) -> dict:
     }
 
 
-def stats_from_dashboard(approach_stats: dict) -> dict:
-    return {
-        "empresas_analisadas": 0,
-        "leads_encontrados": 0,
-        "leads_raspagem": 0,
-        "novos_adicionados": 0,
-        "duplicados_ignorados": 0,
-        "total_geral_base": approach_stats.get("total_leads", 0),
-        "leads_com_telefone": approach_stats.get("leads_com_telefone", 0),
-        "leads_sem_site": approach_stats.get("leads_sem_site", 0),
-        "descartados_sem_telefone": 0,
-        "descartados_possui_site": 0,
-        "descartados_avaliacoes": 0,
-        "descartados_cidade": 0,
-        "total_descartado": 0,
-        "arquivo_excel": "",
-        "mensagem_exportacao": "",
-    }
-
-
 def lead_payload(lead: dict | None) -> dict | None:
     """Prepara lead da esteira para JSON."""
     if not lead:
@@ -199,7 +178,7 @@ def pagination_for(status_filter: str, approach_stats: dict, page: int) -> dict:
         "TODOS": approach_stats["total_leads"],
         "NOVO": approach_stats["novos"],
         "SUCESSO": approach_stats["sucesso"],
-        "ERRO": approach_stats["burn"],
+        "BURN": approach_stats["burn"],
     }
     total_items = int(status_totals.get(status_filter, approach_stats["novos"]) or 0)
     page_size = storage_backend.PAGE_SIZE
@@ -247,28 +226,21 @@ def debug_playwright():
 
 @app.route("/", methods=["GET", "POST"])
 def index():
-    status_filter = "NOVO"
+    status_filter = request.args.get("status", "NOVO").upper()
+    page = parse_page(request.args.get("page", "1"))
     queue_filter = "NOVO"
-    dashboard_snapshot = storage_backend.get_dashboard_snapshot()
-    leads = []
-    approach_stats = dashboard_snapshot["approach_stats"]
-    pagination = {
-        "page": 1,
-        "page_size": 0,
-        "total_items": 0,
-        "total_pages": 1,
-        "start": 0,
-        "end": 0,
-        "has_previous": False,
-        "has_next": False,
-    }
-    pipeline_lead = dashboard_snapshot["next_lead"]
-    scrapes_history = list(reversed(dashboard_snapshot["scrapes_history"]))
+    leads, approach_stats = get_pipeline_leads(status_filter, page, storage_backend.PAGE_SIZE)
+    pagination = pagination_for(status_filter, approach_stats, page)
+    if pagination["page"] != page:
+        page = pagination["page"]
+        leads, approach_stats = get_pipeline_leads(status_filter, page, storage_backend.PAGE_SIZE)
+        pagination = pagination_for(status_filter, approach_stats, page)
+    pipeline_lead = get_next_pipeline_lead(status_filter=queue_filter)
     error = ""
     searched = bool(approach_stats["total_leads"])
     elapsed_time = ""
     last_search_at = ""
-    stats = stats_from_dashboard(approach_stats)
+    stats = default_stats(approach_stats["total_leads"])
     import_summary = None
     form = default_form()
 
@@ -297,22 +269,11 @@ def index():
                     True,
                 )
                 status_filter = "NOVO"
-                dashboard_snapshot = storage_backend.get_dashboard_snapshot()
-                leads = []
-                approach_stats = dashboard_snapshot["approach_stats"]
-                pagination = {
-                    "page": 1,
-                    "page_size": 0,
-                    "total_items": 0,
-                    "total_pages": 1,
-                    "start": 0,
-                    "end": 0,
-                    "has_previous": False,
-                    "has_next": False,
-                }
+                page = 1
+                leads, approach_stats = get_pipeline_leads(status_filter, page, storage_backend.PAGE_SIZE)
+                pagination = pagination_for(status_filter, approach_stats, page)
                 queue_filter = "NOVO"
-                pipeline_lead = dashboard_snapshot["next_lead"]
-                scrapes_history = list(reversed(dashboard_snapshot["scrapes_history"]))
+                pipeline_lead = get_next_pipeline_lead(status_filter=queue_filter)
                 elapsed_time = format_elapsed(perf_counter() - started_at)
                 last_search_at = datetime.now().strftime("%d/%m/%Y %H:%M")
             except Exception as exc:
@@ -332,7 +293,7 @@ def index():
         queue_filter=queue_filter,
         status_filter=status_filter,
         status_options=STATUS_OPTIONS,
-        scrapes_history=scrapes_history,
+        scrapes_history=list(reversed(load_scrapes_history()[-5:])),
         import_summary=import_summary,
         reset_summary=None,
         pagination=pagination,
@@ -342,12 +303,63 @@ def index():
 
 @app.route("/importar-planilha", methods=["POST"])
 def importar_planilha():
+    file = request.files.get("planilha")
+
+    if not file or not file.filename.lower().endswith(".xlsx"):
+        leads, approach_stats = get_pipeline_leads("NOVO")
+        return render_template(
+            "index.html",
+            leads=leads,
+            error="Envie um arquivo .xlsx valido.",
+            form=default_form(),
+            searched=bool(approach_stats["total_leads"]),
+            stats=default_stats(approach_stats["total_leads"]),
+            elapsed_time="",
+            last_search_at="",
+            approach_stats=approach_stats,
+            pipeline_lead=get_next_pipeline_lead(),
+            queue_filter="NOVO",
+            status_filter="NOVO",
+            status_options=STATUS_OPTIONS,
+            scrapes_history=list(reversed(load_scrapes_history()[-5:])),
+            import_summary=None,
+            reset_summary=None,
+        )
+
+    upload_dir = Path("exports/uploads")
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    upload_path = upload_dir / f"{uuid4().hex}.xlsx"
+    file.save(upload_path)
+
+    try:
+        import_summary = import_feedback_spreadsheet(upload_path)
+    except Exception as exc:
+        leads, approach_stats = get_pipeline_leads("NOVO")
+        return render_template(
+            "index.html",
+            leads=leads,
+            error=f"Erro ao importar planilha: {exc}",
+            form=default_form(),
+            searched=bool(approach_stats["total_leads"]),
+            stats=default_stats(approach_stats["total_leads"]),
+            elapsed_time="",
+            last_search_at="",
+            approach_stats=approach_stats,
+            pipeline_lead=get_next_pipeline_lead(),
+            queue_filter="NOVO",
+            status_filter="NOVO",
+            status_options=STATUS_OPTIONS,
+            scrapes_history=list(reversed(load_scrapes_history()[-5:])),
+            import_summary=None,
+            reset_summary=None,
+        )
+
     leads, approach_stats = get_pipeline_leads("NOVO")
 
     return render_template(
         "index.html",
         leads=leads,
-        error="Importacao por Excel desativada. Fonte oficial: Supabase public.leads.",
+        error="",
         form=default_form(),
         searched=bool(approach_stats["total_leads"]),
         stats=default_stats(approach_stats["total_leads"]),
@@ -359,20 +371,14 @@ def importar_planilha():
         status_filter="NOVO",
         status_options=STATUS_OPTIONS,
         scrapes_history=list(reversed(load_scrapes_history()[-5:])),
-        import_summary=None,
+        import_summary=import_summary,
         reset_summary=None,
     )
 
 
 @app.route("/resetar-base", methods=["POST"])
 def resetar_base():
-    try:
-        reset_summary = reset_lead_base(request.form.get("confirmacao", ""))
-    except Exception as exc:
-        reset_summary = {
-            "backup": "",
-            "message": f"Reset nao executado: {exc}",
-        }
+    reset_summary = reset_lead_base()
     leads, approach_stats = get_pipeline_leads("NOVO")
 
     return render_template(
@@ -424,12 +430,8 @@ def esteira_abrir_whatsapp():
     if not lead_id:
         return jsonify({"ok": False, "error": "Lead nao encontrado."}), 400
 
-    current_lead, approach_stats = mark_pipeline_pending(lead_id)
-    return jsonify({
-        "ok": True,
-        "lead": lead_payload(current_lead),
-        "approach_stats": approach_stats,
-    })
+    _, approach_stats = mark_pipeline_pending(lead_id)
+    return jsonify({"ok": True, "approach_stats": approach_stats})
 
 
 @app.route("/esteira/pular", methods=["POST"])
@@ -467,63 +469,28 @@ def esteira_burn():
 
 @app.route("/esteira/feedback", methods=["POST"])
 def esteira_feedback():
-    started_at = perf_counter()
     data = request.get_json(silent=True) or {}
-    print("Payload recebido na esteira/feedback:", dict(data), flush=True)
-    app.logger.info("Feedback da esteira recebido: %s", dict(data))
-    lead_id = (data.get("lead_id") or data.get("unique_key") or "").strip()
+    lead_id = data.get("lead_id", "").strip()
 
     if not lead_id:
-        app.logger.warning("Feedback da esteira sem lead_id: %s", dict(data))
         return jsonify({"ok": False, "error": "Lead nao encontrado."}), 400
 
-    resultado = data.get("resultado", "")
-    if resultado == "mensagem_enviada":
-        whatsapp_valido = "SIM"
-        mensagem_enviada = "SIM"
-    elif resultado == "whatsapp_invalido":
-        whatsapp_valido = "NAO"
-        mensagem_enviada = "NAO"
-    else:
-        whatsapp_valido = data.get("whatsapp_valido", "")
-        mensagem_enviada = data.get("mensagem_enviada", "")
+    whatsapp_valido = data.get("whatsapp_valido", "")
+    mensagem_enviada = data.get("mensagem_enviada", "")
+    final_status = "SUCESSO" if whatsapp_valido == "SIM" and mensagem_enviada == "SIM" else "BURN"
 
-    final_status = "SUCESSO" if whatsapp_valido == "SIM" and mensagem_enviada == "SIM" else "ERRO"
-    ultima_acao = (
-        "WhatsApp enviado"
-        if final_status == "SUCESSO"
-        else "WhatsApp inválido"
-    )
-
-    try:
-        save_feedback(
-            lead_id,
-            {
-                "status": final_status,
-                "whatsapp_valido": whatsapp_valido,
-                "mensagem_enviada": mensagem_enviada,
-                "observacao": data.get("observacao", ""),
-                "ultima_acao": ultima_acao,
-                "calculate_stats": False,
-            },
-        )
-        print("Lead atualizado:", lead_id, final_status, flush=True)
-        dashboard_snapshot = storage_backend.get_dashboard_snapshot(include_history=False)
-        next_lead = dashboard_snapshot["next_lead"]
-        print("Próximo lead carregado:", (next_lead or {}).get("Lead ID", ""), flush=True)
-        approach_stats = dashboard_snapshot["approach_stats"]
-    except Exception as exc:
-        app.logger.exception("Erro ao salvar feedback da esteira para %s", lead_id)
-        return jsonify({"ok": False, "error": str(exc)}), 500
-
-    app.logger.info(
-        "Feedback da esteira salvo: lead_id=%s status=%s whatsapp_valido=%s mensagem_enviada=%s",
+    save_feedback(
         lead_id,
-        final_status,
-        whatsapp_valido,
-        mensagem_enviada,
+        {
+            "status": final_status,
+            "whatsapp_valido": whatsapp_valido,
+            "mensagem_enviada": mensagem_enviada,
+            "observacao": data.get("observacao", ""),
+            "ultima_acao": "Feedback salvo pela esteira",
+        },
     )
-    print(f"Tempo salvar feedback: {perf_counter() - started_at:.3f}s", flush=True)
+    next_lead = get_next_pipeline_lead()
+    _, approach_stats = get_pipeline_leads("TODOS")
     return jsonify({
         "ok": True,
         "next_lead": lead_payload(next_lead),

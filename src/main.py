@@ -61,7 +61,7 @@ FEEDBACK_COLUMNS = [
     "Origem raspagem",
 ]
 FULL_EXPORT_COLUMNS = EXPORT_COLUMNS + FEEDBACK_COLUMNS
-PIPELINE_STATUSES = ["NOVO", "SUCESSO", "BURN"]
+PIPELINE_STATUSES = ["NOVO", "SUCESSO", "ERRO"]
 BRAZILIAN_STATES = {
     "AC": "acre",
     "AL": "alagoas",
@@ -176,14 +176,15 @@ def lead_identifier(lead: dict) -> str:
     return sha1(raw_identifier.encode("utf-8")).hexdigest()
 
 
-def default_feedback() -> dict:
+def default_feedback(status_abordagem: str = "NOVO") -> dict:
     """Estado padrao de abordagem para um lead ainda nao tratado."""
     return {
-        "Status abordagem": "NOVO",
+        "Status abordagem": status_abordagem,
         "WhatsApp valido?": "",
         "Mensagem enviada?": "",
         "Observacao": "",
         "Data/hora do feedback": "",
+        "Data ultimo feedback": "",
         "Data primeira abordagem": "",
         "Ultima acao": "",
     }
@@ -336,22 +337,13 @@ def backup_before_reset() -> Path | None:
     return backup_path
 
 
-def reset_lead_base() -> dict:
-    """Limpa base, feedbacks e planilhas derivadas sem apagar backups ou historicos brutos."""
-    backup_path = backup_before_reset()
-    save_json(MASTER_LEADS_PATH, [])
-    save_json(FEEDBACKS_PATH, {})
-
-    for path in [ACTIVE_EXPORT_PATH, HISTORY_EXPORT_PATH]:
-        try:
-            if path.exists():
-                path.unlink()
-        except PermissionError:
-            pass
-
+def reset_lead_base(confirm_phrase: str = "") -> dict:
+    """Executa reset operacional somente no Supabase, com confirmacao forte."""
+    result = storage_backend.reset_supabase_operational(confirm_phrase)
     return {
-        "backup": str(backup_path) if backup_path else "",
-        "message": "Base resetada com sucesso.",
+        "backup": "",
+        "message": result["message"],
+        "deleted": result["deleted"],
     }
 
 
@@ -377,6 +369,9 @@ def upsert_leads_from_scrape(
     diagnostico: bool = True,
 ) -> tuple[list[dict], dict]:
     """Porta unica de entrada: adiciona apenas contatos realmente novos."""
+    if storage_backend.get_storage() == "supabase":
+        return storage_backend.upsert_leads_from_scrape(new_leads, scrape_info, diagnostico)
+
     master = [normalize_master_lead(lead) for lead in load_master_leads()]
     index = build_lead_index(master)
     added = 0
@@ -701,6 +696,7 @@ def update_lead_status(
     ultima_acao: str = "Status atualizado",
     set_first_approach: bool = False,
     record_action: bool = True,
+    calculate_stats: bool = True,
 ) -> tuple[list[dict], dict]:
     """Atualiza status, feedbacks e planilhas em um unico ponto."""
     if storage_backend.get_storage() == "supabase":
@@ -742,6 +738,9 @@ def update_lead_status(
             after.update(
                 {
                     "status_abordagem": status,
+                    "whatsapp_valido": whatsapp_valido,
+                    "mensagem_enviada": mensagem_enviada,
+                    "observacao": observacao.strip(),
                     "data_primeira_abordagem": first_approach,
                     "data_ultimo_feedback": now,
                     "ultima_acao": ultima_acao,
@@ -749,7 +748,7 @@ def update_lead_status(
             )
             record_recent_action(ultima_acao, lead_id, before, snapshot_lead(after, feedback_payload))
         storage_backend.add_feedback(lead_id, feedback_payload)
-        return [], prospecting_stats([])
+        return [], prospecting_stats([]) if calculate_stats else {}
 
     master = [normalize_master_lead(lead) for lead in load_master_leads()]
     feedbacks = load_feedbacks()
@@ -815,62 +814,7 @@ def prospecting_stats(leads: list[dict]) -> dict:
     tomorrow = (now + timedelta(days=1)).strftime("%Y-%m-%d")
 
     if storage_backend.get_storage() == "supabase":
-        total = storage_backend.count_leads()
-        new = storage_backend.count_leads("NOVO")
-        pending = storage_backend.count_leads("PENDENTE")
-        success = storage_backend.count_leads("SUCESSO")
-        burn = storage_backend.count_leads("BURN")
-        sent_today = storage_backend.count_feedbacks("SIM", date_from=today, date_to=tomorrow)
-        sent_week = storage_backend.count_feedbacks("SIM", date_from=week_start.isoformat())
-        sent_month = storage_backend.count_feedbacks("SIM", date_from=month_start.strftime("%Y-%m-%d"))
-        approached_today = storage_backend.count_leads(
-            date_column="data_primeira_abordagem",
-            date_from=today,
-            date_to=tomorrow,
-        )
-        success_today = storage_backend.count_leads(
-            "SUCESSO",
-            date_column="data_ultimo_feedback",
-            date_from=today,
-            date_to=tomorrow,
-        )
-        burn_today = storage_backend.count_leads(
-            "BURN",
-            date_column="data_ultimo_feedback",
-            date_from=today,
-            date_to=tomorrow,
-        )
-        pending_today = storage_backend.count_leads(
-            "PENDENTE",
-            date_column="data_primeira_abordagem",
-            date_from=today,
-            date_to=tomorrow,
-        )
-        daily_goal = 50
-        remaining_queue = new
-        finished_contacts = success + burn
-        whatsapp_valid_rate = round((success / finished_contacts) * 100) if finished_contacts else 0
-        estimated_days = (remaining_queue + daily_goal - 1) // daily_goal if daily_goal else ""
-
-        return {
-            "total_leads": total,
-            "novos": new,
-            "pendentes": pending,
-            "sucesso": success,
-            "burn": burn,
-            "mensagens_enviadas_hoje": sent_today,
-            "mensagens_enviadas_semana": sent_week,
-            "mensagens_enviadas_mes": sent_month,
-            "restantes_para_abordar": remaining_queue,
-            "abordados_hoje": approached_today,
-            "sucesso_hoje": success_today,
-            "burn_hoje": burn_today,
-            "pendentes_gerados_hoje": pending_today,
-            "meta_diaria": daily_goal,
-            "faltam_para_meta": max(0, daily_goal - approached_today),
-            "estimativa_finalizar": estimated_days,
-            "taxa_whatsapp_valido": whatsapp_valid_rate,
-        }
+        return storage_backend.get_dashboard_snapshot(include_history=False)["approach_stats"]
 
     def sent_reference_date(lead: dict):
         reference_date = (
@@ -890,7 +834,7 @@ def prospecting_stats(leads: list[dict]) -> dict:
     new = sum(1 for lead in leads if lead.get("Status abordagem") == "NOVO")
     pending = sum(1 for lead in leads if lead.get("Status abordagem") == "PENDENTE")
     success = sum(1 for lead in leads if lead.get("Status abordagem") == "SUCESSO")
-    burn = sum(1 for lead in leads if lead.get("Status abordagem") == "BURN")
+    burn = sum(1 for lead in leads if lead.get("Status abordagem") in ["BURN", "ERRO"])
     sent_today = sum(
         1
         for lead in leads
@@ -928,7 +872,7 @@ def prospecting_stats(leads: list[dict]) -> dict:
     burn_today = sum(
         1
         for lead in leads
-        if lead.get("Status abordagem") == "BURN"
+        if lead.get("Status abordagem") in ["BURN", "ERRO"]
         and lead.get("Data/hora do feedback", "").startswith(today)
     )
     pending_today = sum(
@@ -1038,7 +982,9 @@ def save_feedback(lead_id: str, feedback: dict) -> tuple[list[dict], dict]:
         feedback.get("mensagem_enviada", ""),
         feedback.get("observacao", ""),
         feedback.get("ultima_acao", "Feedback salvo"),
-        requested_status in ["SUCESSO", "BURN"],
+        requested_status in ["SUCESSO", "ERRO"],
+        True,
+        feedback.get("calculate_stats", True),
     )
 
 
@@ -1077,55 +1023,17 @@ def get_next_pipeline_lead(skip_id: str = "", status_filter: str = "NOVO") -> di
 
 
 def mark_pipeline_pending(lead_id: str) -> tuple[dict | None, dict]:
-    """Registra abertura do WhatsApp sem mudar o status para PENDENTE."""
+    """Registra apenas que o WhatsApp foi aberto, sem finalizar o lead."""
     if storage_backend.get_storage() == "supabase":
         lead = storage_backend.get_lead_by_unique_key(lead_id)
         if not lead:
-            return get_next_pipeline_lead(), prospecting_stats([])
+            return get_next_pipeline_lead(), {}
 
-        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        before = snapshot_lead(lead, default_feedback(lead.get("status_abordagem", "NOVO")))
-        first_approach = lead.get("data_primeira_abordagem") or now
-        storage_backend.update_lead_record(
-            lead_id,
-            {
-                "data_primeira_abordagem": first_approach,
-                "ultima_acao": "WhatsApp aberto",
-            },
-        )
-        feedback = default_feedback(lead.get("status_abordagem", "NOVO"))
-        feedback["Data primeira abordagem"] = first_approach
-        feedback["Ultima acao"] = "WhatsApp aberto"
-        after = dict(lead)
-        after["data_primeira_abordagem"] = first_approach
-        after["ultima_acao"] = "WhatsApp aberto"
-        record_recent_action("WhatsApp aberto", lead_id, before, snapshot_lead(after, feedback))
-        return get_next_pipeline_lead(), prospecting_stats([])
+        return lead, {}
 
-    master = [normalize_master_lead(lead) for lead in load_master_leads()]
-    feedbacks = load_feedbacks()
-    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-    for lead in master:
-        if lead["Lead ID"] == lead_id:
-            previous_feedback = feedbacks.get(lead_id, default_feedback())
-            before = snapshot_lead(lead, previous_feedback)
-            if not lead.get("data_primeira_abordagem"):
-                lead["data_primeira_abordagem"] = now
-            lead["ultima_acao"] = "WhatsApp aberto"
-            feedback = feedbacks.get(lead_id, default_feedback())
-            feedback["Status abordagem"] = lead.get("status_abordagem", "NOVO")
-            feedback["Data primeira abordagem"] = feedback.get("Data primeira abordagem") or now
-            feedback["Ultima acao"] = "WhatsApp aberto"
-            feedbacks[lead_id] = feedback
-            record_recent_action("WhatsApp aberto", lead_id, before, snapshot_lead(lead, feedback))
-            break
-
-    save_master_leads(master)
-    save_feedbacks(feedbacks)
-    export_feedback_excels(master)
-    enriched = enrich_leads_with_feedback(master)
-    return get_next_pipeline_lead(), prospecting_stats(enriched)
+    lead = next((item for item in load_master_leads() if item.get("Lead ID") == lead_id), None)
+    enriched = enrich_leads_with_feedback(load_master_leads())
+    return lead, {}
 
 
 def skip_pipeline_lead(lead_id: str, status_filter: str = "NOVO") -> tuple[dict | None, dict]:
@@ -1159,15 +1067,15 @@ def skip_pipeline_lead(lead_id: str, status_filter: str = "NOVO") -> tuple[dict 
 
 
 def burn_pipeline_lead(lead_id: str) -> tuple[dict | None, dict]:
-    """Marca o lead atual como BURN pela esteira."""
+    """Remove o lead da fila ativa marcando como ERRO."""
     save_feedback(
         lead_id,
         {
-            "status": "BURN",
+            "status": "ERRO",
             "whatsapp_valido": "NAO",
             "mensagem_enviada": "NAO",
-            "observacao": "Marcado como BURN pela esteira",
-            "ultima_acao": "Marcado como BURN",
+            "observacao": "Contato com erro",
+            "ultima_acao": "Contato com erro",
         },
     )
     if storage_backend.get_storage() == "supabase":

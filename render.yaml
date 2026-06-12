@@ -10,6 +10,6 @@ services:
       - key: PLAYWRIGHT_BROWSERS_PATH
         value: /opt/render/project/.playwright-browsers
       - key: STORAGE_MODE
-        value: local
+        value: supabase
       - key: APP_SECRET_KEY
         generateValue: true

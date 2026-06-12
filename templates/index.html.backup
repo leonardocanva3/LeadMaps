@@ -83,17 +83,17 @@
 
         <section class="card import-card">
             <div>
-                <span class="eyebrow">Excel</span>
-                <h2>Exportacao por download</h2>
-                <p>Excel fica disponivel apenas como exportacao/download. A fonte oficial e Supabase public.leads.</p>
+                <span class="eyebrow">Importar feedback</span>
+                <h2>Importar planilha de feedback</h2>
+                <p>Use uma planilha .xlsx marcada com amarelo para SUCESSO e vermelho para BURN.</p>
             </div>
 
             <form method="post" action="{{ url_for('importar_planilha') }}" enctype="multipart/form-data" class="import-form">
                 <label>
                     Planilha Excel
-                    <input type="file" name="planilha" accept=".xlsx" disabled>
+                    <input type="file" name="planilha" accept=".xlsx" required>
                 </label>
-                <button type="submit" class="primary-button" disabled>Importacao desativada</button>
+                <button type="submit" class="primary-button">Importar planilha</button>
             </form>
 
             <form method="post" action="{{ url_for('resetar_base') }}" class="reset-form" onsubmit="return confirm('Tem certeza que deseja resetar a base? Um backup sera criado antes.');">
@@ -144,7 +144,7 @@
                 </article>
 
                 <article class="stat-card">
-                    <span>Erros/descartados</span>
+                    <span>Burn</span>
                     <strong id="burn-leads">{{ approach_stats.burn }}</strong>
                 </article>
 
@@ -173,6 +173,11 @@
                     <strong id="finish-estimate">
                         {% if approach_stats.estimativa_finalizar == "" %}Defina uma meta diaria{% else %}{{ approach_stats.estimativa_finalizar }} dias{% endif %}
                     </strong>
+                </article>
+
+                <article class="stat-card">
+                    <span>Enviados na semana</span>
+                    <strong id="sent-week">{{ approach_stats.mensagens_enviadas_semana }}</strong>
                 </article>
 
                 <article class="stat-card">
@@ -305,7 +310,8 @@
 
                     <div class="pipeline-actions">
                         <a class="button download" id="pipeline-whatsapp" href="{% if pipeline_lead %}{{ pipeline_lead['WhatsApp'] }}{% else %}#{% endif %}" target="_blank" rel="noopener">Conversar no WhatsApp</a>
-                        <button type="button" class="button danger" id="pipeline-burn">Contato com erro</button>
+                        <button type="button" class="button muted" id="pipeline-skip">Pular contato</button>
+                        <button type="button" class="button danger" id="pipeline-burn">Marcar como BURN</button>
                         <button type="button" class="button subtle" id="pipeline-undo">Desfazer ultimo</button>
                     </div>
                 </div>
@@ -347,7 +353,6 @@
                 {% endif %}
             </section>
 
-            {% if leads %}
             <section class="card results">
                 <div class="treated-alert {% if approach_stats.novos == 0 and approach_stats.total_leads > 0 %}is-visible{% endif %}" id="treated-alert">
                     <strong>Todos os contatos foram tratados.</strong>
@@ -479,7 +484,6 @@
                     </table>
                 </div>
             </section>
-            {% endif %}
         {% endif %}
 
         <footer class="footer">
@@ -498,12 +502,34 @@
                 <button type="button" class="icon-button" id="modal-close">x</button>
             </div>
 
+            <a class="button download modal-whatsapp" id="modal-whatsapp" target="_blank" rel="noopener">Conversar no WhatsApp</a>
+
             <form id="feedback-form" class="feedback-form">
                 <input type="hidden" name="lead_id" id="modal-lead-id">
 
-                <div class="confirmation-actions">
-                    <button type="button" class="primary-button" id="confirm-message-sent">Mensagem enviada</button>
-                    <button type="button" class="button danger" id="confirm-invalid-whatsapp">WhatsApp inv&aacute;lido</button>
+                <label>
+                    WhatsApp v&aacute;lido?
+                    <select name="whatsapp_valido" id="modal-whatsapp-valid" required>
+                        <option value="SIM">SIM</option>
+                        <option value="NAO">NAO</option>
+                    </select>
+                </label>
+
+                <label>
+                    Mensagem "Ol&aacute;" enviada?
+                    <select name="mensagem_enviada" id="modal-message-sent" required>
+                        <option value="SIM">SIM</option>
+                        <option value="NAO">NAO</option>
+                    </select>
+                </label>
+
+                <label class="full-field">
+                    Observa&ccedil;&atilde;o
+                    <textarea name="observacao" id="modal-note" rows="4" placeholder="Opcional"></textarea>
+                </label>
+
+                <div class="modal-actions">
+                    <button type="submit" class="primary-button" id="modal-save-next">Salvar e proximo</button>
                     <button type="button" class="button muted" id="modal-cancel">Cancelar</button>
                 </div>
             </form>
@@ -527,33 +553,18 @@
         const modalLeadId = document.getElementById("modal-lead-id");
         const modalLeadName = document.getElementById("modal-lead-name");
         const modalLeadPhone = document.getElementById("modal-lead-phone");
-        const confirmMessageSent = document.getElementById("confirm-message-sent");
-        const confirmInvalidWhatsapp = document.getElementById("confirm-invalid-whatsapp");
+        const modalWhatsapp = document.getElementById("modal-whatsapp");
+        const modalWhatsappValid = document.getElementById("modal-whatsapp-valid");
+        const modalMessageSent = document.getElementById("modal-message-sent");
+        const modalNote = document.getElementById("modal-note");
         const treatedAlert = document.getElementById("treated-alert");
         const pipelineBody = document.getElementById("pipeline-body");
         const pipelineEmpty = document.getElementById("pipeline-empty");
         const pipelineStatus = document.getElementById("pipeline-status");
         const pipelineWhatsapp = document.getElementById("pipeline-whatsapp");
-        const whatsappMessage = "Bom Dia! Meu nome é Leonardo. Tudo bem?";
         let activeRow = null;
         let modalMode = "table";
         let saveAndNext = false;
-
-        function whatsappHrefWithMessage(href) {
-            if (!href || href === "#") {
-                return "#";
-            }
-
-            const cleanHref = href.replace(/([?&])text=[^&]*/g, "").replace(/[?&]$/, "");
-            const separator = cleanHref.includes("?") ? "&" : "?";
-            return `${cleanHref}${separator}text=${encodeURIComponent(whatsappMessage)}`;
-        }
-
-        function refreshWhatsappLinks() {
-            document.querySelectorAll("a[href*='wa.me'], a[href*='whatsapp']").forEach((link) => {
-                link.href = whatsappHrefWithMessage(link.getAttribute("href"));
-            });
-        }
 
         function updateApproachStats(stats) {
             const setText = (id, value) => {
@@ -568,6 +579,7 @@
             setText("success-leads", stats.sucesso);
             setText("burn-leads", stats.burn);
             setText("sent-today", stats.mensagens_enviadas_hoje);
+            setText("sent-week", stats.mensagens_enviadas_semana);
             setText("sent-month", stats.mensagens_enviadas_mes);
             setText("remaining-queue", stats.restantes_para_abordar);
             setText("approached-today", stats.abordados_hoje);
@@ -611,6 +623,10 @@
             modalLeadId.value = row.dataset.leadId;
             modalLeadName.textContent = row.dataset.name || "Lead";
             modalLeadPhone.textContent = row.dataset.phone || "";
+            modalWhatsapp.href = row.dataset.whatsapp || "#";
+            modalWhatsappValid.value = row.querySelector(".feedback-whatsapp").textContent.trim() || "SIM";
+            modalMessageSent.value = row.querySelector(".feedback-message").textContent.trim() || "SIM";
+            modalNote.value = row.querySelector(".feedback-note").textContent.trim();
             modal.classList.add("is-visible");
             modal.setAttribute("aria-hidden", "false");
         }
@@ -640,7 +656,7 @@
             document.getElementById("pipeline-rating").textContent = lead["Nota"] || "";
             document.getElementById("pipeline-reviews").textContent = lead["Quantidade de avaliacoes"] || "";
             document.getElementById("pipeline-opportunity").textContent = lead["Oportunidade"] || "";
-            pipelineWhatsapp.href = whatsappHrefWithMessage(lead["WhatsApp"] || "#");
+            pipelineWhatsapp.href = lead["WhatsApp"] || "#";
         }
 
         function openPipelineModal() {
@@ -650,13 +666,17 @@
             modalLeadId.value = pipelineBody.dataset.leadId;
             modalLeadName.textContent = document.getElementById("pipeline-name").textContent || "Lead";
             modalLeadPhone.textContent = document.getElementById("pipeline-phone").textContent || "";
+            modalWhatsapp.href = pipelineBody.dataset.whatsapp || "#";
+            modalWhatsappValid.value = "SIM";
+            modalMessageSent.value = "SIM";
+            modalNote.value = "";
             modal.classList.add("is-visible");
             modal.setAttribute("aria-hidden", "false");
         }
 
         async function markPending(row) {
             if (!row.classList.contains("status-novo")) {
-                return null;
+                return;
             }
 
             const response = await fetch("{{ url_for('esteira_abrir_whatsapp') }}", {
@@ -667,13 +687,10 @@
             const data = await response.json();
 
             if (!data.ok) {
-                return null;
+                return;
             }
 
-            if (data.approach_stats && data.approach_stats.total_leads !== undefined) {
-                updateApproachStats(data.approach_stats);
-            }
-            return data;
+            updateApproachStats(data.approach_stats);
         }
 
         function closeModal() {
@@ -682,64 +699,18 @@
         }
 
         document.querySelectorAll(".js-open-feedback").forEach((button) => {
-            button.addEventListener("click", async () => {
+            button.addEventListener("click", () => {
                 const row = button.closest("tr");
-                const data = await markPending(row);
-                if (data) {
-                    openModal(row);
-                }
+                markPending(row);
+                openModal(row);
             });
         });
 
         document.getElementById("modal-close").addEventListener("click", closeModal);
         document.getElementById("modal-cancel").addEventListener("click", closeModal);
-        async function confirmPipelineResult(resultado) {
-            const leadId = modalLeadId.value || pipelineBody.dataset.leadId || (activeRow ? activeRow.dataset.leadId : "");
-
-            if (!leadId) {
-                alert("Lead nao encontrado para salvar o feedback.");
-                return;
-            }
-
-            const payload = {
-                lead_id: leadId,
-                whatsapp_valido: resultado === "mensagem_enviada" ? "SIM" : "NAO",
-                mensagem_enviada: resultado === "mensagem_enviada" ? "SIM" : "NAO",
-                observacao: resultado === "whatsapp_invalido" ? "WhatsApp inválido" : "",
-            };
-
-            console.log("Enviando feedback", payload);
-
-            let data;
-            try {
-                const response = await fetch("{{ url_for('esteira_feedback') }}", {
-                    method: "POST",
-                    headers: {"Content-Type": "application/json"},
-                    body: JSON.stringify(payload),
-                });
-                console.log("Resposta", response);
-                data = await response.json();
-            } catch (error) {
-                alert(`Nao foi possivel salvar o feedback: ${error}`);
-                return;
-            }
-
-            if (!data.ok) {
-                alert(data.error || "Nao foi possivel salvar o feedback.");
-                return;
-            }
-
-            closeModal();
-            updateApproachStats(data.approach_stats);
-            renderPipelineLead(data.next_lead);
-            if (activeRow) {
-                activeRow.remove();
-                activeRow = null;
-            }
-        }
-
-        confirmMessageSent.addEventListener("click", () => confirmPipelineResult("mensagem_enviada"));
-        confirmInvalidWhatsapp.addEventListener("click", () => confirmPipelineResult("whatsapp_invalido"));
+        document.getElementById("modal-save-next").addEventListener("click", () => {
+            saveAndNext = true;
+        });
 
         if (pipelineWhatsapp) {
         pipelineWhatsapp.addEventListener("click", async () => {
@@ -758,10 +729,27 @@
             const data = await response.json();
 
             if (data.ok) {
-                if (data.approach_stats && data.approach_stats.total_leads !== undefined) {
-                    updateApproachStats(data.approach_stats);
-                }
+                updateApproachStats(data.approach_stats);
                 openPipelineModal();
+            }
+        });
+        }
+
+        const pipelineSkip = document.getElementById("pipeline-skip");
+        const skippedLeadIds = new Set();
+        if (pipelineSkip) {
+        pipelineSkip.addEventListener("click", async () => {
+            skippedLeadIds.add(pipelineBody.dataset.leadId);
+            const response = await fetch("{{ url_for('esteira_pular') }}", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({lead_id: pipelineBody.dataset.leadId}),
+            });
+            const data = await response.json();
+
+            if (data.ok) {
+                renderPipelineLead(data.next_lead);
+                updateApproachStats(data.approach_stats);
             }
         });
         }
@@ -803,6 +791,50 @@
         });
         }
 
+        feedbackForm.addEventListener("submit", async (event) => {
+            event.preventDefault();
+
+            const payload = {
+                lead_id: modalLeadId.value,
+                whatsapp_valido: modalWhatsappValid.value,
+                mensagem_enviada: modalMessageSent.value,
+                observacao: modalNote.value,
+            };
+
+            const url = "{{ url_for('esteira_feedback') }}";
+            const response = await fetch(url, {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify(payload),
+            });
+            const data = await response.json();
+
+            if (!data.ok) {
+                alert(data.error || "Nao foi possivel salvar o feedback.");
+                return;
+            }
+
+            if (modalMode === "table" && activeRow) {
+                const now = new Date().toISOString().slice(0, 19).replace("T", " ");
+                const finalStatus = payload.whatsapp_valido === "SIM" && payload.mensagem_enviada === "SIM" ? "SUCESSO" : "BURN";
+                activeRow.classList.remove("status-novo", "status-pendente", "status-sucesso", "status-burn");
+                activeRow.classList.add(`status-${finalStatus.toLowerCase()}`);
+                activeRow.querySelector(".feedback-status").innerHTML = `<span class="badge status-badge status-${finalStatus.toLowerCase()}">${finalStatus}</span>`;
+                activeRow.querySelector(".feedback-whatsapp").textContent = payload.whatsapp_valido;
+                activeRow.querySelector(".feedback-message").textContent = payload.mensagem_enviada;
+                activeRow.querySelector(".feedback-note").textContent = payload.observacao;
+                activeRow.querySelector(".feedback-date").textContent = now;
+            }
+
+            if (data.next_lead !== undefined) {
+                renderPipelineLead(data.next_lead);
+            }
+
+            updateApproachStats(data.approach_stats);
+
+            closeModal();
+        });
+
         const showList = document.getElementById("show-list");
         const hideList = document.getElementById("hide-list");
         const fullList = document.getElementById("full-list");
@@ -820,8 +852,6 @@
                 showList.classList.remove("is-hidden");
             });
         }
-
-        refreshWhatsappLinks();
     </script>
 </body>
 </html>

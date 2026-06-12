@@ -68,14 +68,20 @@ def calculate_opportunity(site: str, reviews: str) -> str:
 
 def identity_keys(lead: dict) -> set[str]:
     phone = clean_digits(lead.get("telefone") or lead.get("Telefone", ""))
+    whatsapp = str(lead.get("whatsapp") or lead.get("WhatsApp", "") or "").strip()
+    maps_link = str(lead.get("link_google_maps") or lead.get("Link do Google Maps", "") or "").strip()
     name = normalize_text(lead.get("nome") or lead.get("Nome", ""))
-    address = normalize_text(lead.get("endereco") or lead.get("Endereco", ""))
+    city = normalize_text(lead.get("cidade") or lead.get("Cidade", ""))
 
     keys = set()
     if phone:
         keys.add(f"phone:{phone}")
-    if name and address:
-        keys.add(f"nameaddress:{name}|{address}")
+    if whatsapp:
+        keys.add(f"whatsapp:{whatsapp}")
+    if maps_link:
+        keys.add(f"maps:{maps_link}")
+    if not keys and name and city:
+        keys.add(f"namecity:{name}|{city}")
     return keys
 
 
@@ -221,13 +227,22 @@ def collect_result_links(page, limit: int | None = None) -> list[str]:
 
 
 def load_existing_keys(client) -> set[str]:
-    rows = (
-        client.table("leads")
-        .select("telefone_limpo,nome,endereco")
-        .execute()
-        .data
-        or []
-    )
+    rows = []
+    page_size = 1000
+    start = 0
+    while True:
+        batch = (
+            client.table("leads")
+            .select("telefone_limpo,whatsapp,link_google_maps,nome,cidade")
+            .range(start, start + page_size - 1)
+            .execute()
+            .data
+            or []
+        )
+        rows.extend(batch)
+        if len(batch) < page_size:
+            break
+        start += page_size
 
     keys = set()
     for row in rows:
