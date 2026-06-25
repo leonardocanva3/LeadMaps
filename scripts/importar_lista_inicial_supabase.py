@@ -16,7 +16,7 @@ sys.path.insert(0, str(ROOT))
 from src import storage
 
 
-ORIGEM_RASPAGEM = "IMPORTAÇÃO INICIAL 11-06"
+ORIGEM_RASPAGEM = "OFICINAS MECANICAS MT COM WHATSAPP"
 COUNTRY_CODE = "55"
 BATCH_SIZE = 100
 
@@ -57,6 +57,8 @@ COLUMN_ALIASES = {
         "whats",
         "wa",
         "link whatsapp",
+        "whatsapp link",
+        "whatsapp_link",
     },
     "Endereco": {
         "endereco",
