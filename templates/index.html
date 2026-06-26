@@ -534,24 +534,79 @@
         const pipelineEmpty = document.getElementById("pipeline-empty");
         const pipelineStatus = document.getElementById("pipeline-status");
         const pipelineWhatsapp = document.getElementById("pipeline-whatsapp");
-        const whatsappMessage = "Bom dia! Meu nome é Leonardo. Tudo bem? Este é o número da oficina?";
+        const whatsappMessages = [
+            "Bom dia! Meu nome é Leonardo. Este é o número da oficina correto?",
+            "Bom dia! Meu nome é Leonardo. Posso confirmar se este é o número da oficina?",
+            "Bom dia! Tudo bem? Meu nome é Leonardo. Este contato é da oficina?",
+            "Bom dia! Meu nome é Leonardo. Estou falando com a oficina?",
+            "Bom dia! Meu nome é Leonardo. Esse WhatsApp pertence à oficina?",
+            "Bom dia! Meu nome é Leonardo. Consegue confirmar se este é o WhatsApp da oficina?",
+            "Olá! Bom dia! Meu nome é Leonardo. Este número é da oficina?",
+            "Bom dia! Meu nome é Leonardo. Este é o WhatsApp correto da oficina?",
+            "Bom dia! Tudo certo? Meu nome é Leonardo. Este contato é da oficina?",
+            "Bom dia! Meu nome é Leonardo. Gostaria apenas de confirmar: este número é da oficina?",
+        ];
+        const whatsappMessageIndexKey = "leadmaps.whatsappMessageIndex";
         let activeRow = null;
         let modalMode = "table";
         let saveAndNext = false;
 
-        function whatsappHrefWithMessage(href) {
+        function getStoredWhatsappMessageIndex() {
+            try {
+                const storedIndex = Number.parseInt(localStorage.getItem(whatsappMessageIndexKey), 10);
+                return Number.isInteger(storedIndex) && storedIndex >= 0 && storedIndex < whatsappMessages.length ? storedIndex : 0;
+            } catch (error) {
+                return 0;
+            }
+        }
+
+        function storeWhatsappMessageIndex(index) {
+            try {
+                localStorage.setItem(whatsappMessageIndexKey, String(index));
+            } catch (error) {
+                // Ignore unavailable storage and keep the click flow working.
+            }
+        }
+
+        function getNextWhatsappMessage() {
+            const messageIndex = getStoredWhatsappMessageIndex();
+            const nextIndex = (messageIndex + 1) % whatsappMessages.length;
+            storeWhatsappMessageIndex(nextIndex);
+            return whatsappMessages[messageIndex];
+        }
+
+        function whatsappHrefWithoutMessage(href) {
             if (!href || href === "#") {
                 return "#";
             }
 
-            const cleanHref = href.replace(/([?&])text=[^&]*/g, "").replace(/[?&]$/, "");
-            const separator = cleanHref.includes("?") ? "&" : "?";
-            return `${cleanHref}${separator}text=${encodeURIComponent(whatsappMessage)}`;
+            return href.replace(/([?&])text=[^&]*/g, "").replace(/[?&]$/, "");
         }
 
-        function refreshWhatsappLinks() {
+        function whatsappHrefWithMessage(href, message) {
+            const cleanHref = whatsappHrefWithoutMessage(href);
+            if (cleanHref === "#") {
+                return "#";
+            }
+
+            const separator = cleanHref.includes("?") ? "&" : "?";
+            return `${cleanHref}${separator}text=${encodeURIComponent(message)}`;
+        }
+
+        function applyNextWhatsappMessage(link) {
+            const baseHref = link.dataset.whatsappBaseHref || whatsappHrefWithoutMessage(link.getAttribute("href"));
+            if (baseHref === "#") {
+                return;
+            }
+
+            link.dataset.whatsappBaseHref = baseHref;
+            link.href = whatsappHrefWithMessage(baseHref, getNextWhatsappMessage());
+        }
+
+        function prepareWhatsappLinks() {
             document.querySelectorAll("a[href*='wa.me'], a[href*='whatsapp']").forEach((link) => {
-                link.href = whatsappHrefWithMessage(link.getAttribute("href"));
+                link.dataset.whatsappBaseHref = whatsappHrefWithoutMessage(link.getAttribute("href"));
+                link.addEventListener("click", () => applyNextWhatsappMessage(link));
             });
         }
 
@@ -640,7 +695,8 @@
             document.getElementById("pipeline-rating").textContent = lead["Nota"] || "";
             document.getElementById("pipeline-reviews").textContent = lead["Quantidade de avaliacoes"] || "";
             document.getElementById("pipeline-opportunity").textContent = lead["Oportunidade"] || "";
-            pipelineWhatsapp.href = whatsappHrefWithMessage(lead["WhatsApp"] || "#");
+            pipelineWhatsapp.href = lead["WhatsApp"] || "#";
+            pipelineWhatsapp.dataset.whatsappBaseHref = whatsappHrefWithoutMessage(pipelineWhatsapp.href);
         }
 
         function openPipelineModal() {
@@ -821,7 +877,7 @@
             });
         }
 
-        refreshWhatsappLinks();
+        prepareWhatsappLinks();
     </script>
 </body>
 </html>
