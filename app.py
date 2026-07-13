@@ -10,6 +10,11 @@ from flask import Flask, jsonify, redirect, render_template, request, send_file,
 from src import storage as storage_backend
 
 try:
+    import httpx
+except ImportError:
+    httpx = None
+
+try:
     from dotenv import load_dotenv
 except ImportError:
     def load_dotenv(*args, **kwargs):
@@ -38,6 +43,12 @@ load_dotenv(".env.local", override=True)
 
 app = Flask(__name__)
 app.secret_key = os.getenv("APP_SECRET_KEY", "leadmaps-local-dev")
+
+
+EXTERNAL_SERVICE_ERROR_MESSAGE = (
+    "Nao foi possivel carregar os dados do Supabase agora. "
+    "A pagina continua disponivel; tente novamente em instantes."
+)
 
 
 STATUS_OPTIONS = ["NOVO"]
@@ -118,6 +129,45 @@ def default_stats(total_base: int = 0) -> dict:
         "arquivo_excel": "",
         "mensagem_exportacao": "",
     }
+
+
+def empty_dashboard_snapshot() -> dict:
+    return {
+        "approach_stats": storage_backend.empty_dashboard_stats(),
+        "next_lead": None,
+        "scrapes_history": [],
+        "elapsed_seconds": 0,
+    }
+
+
+def safe_dashboard_snapshot(include_history: bool = True) -> tuple[dict, str]:
+    try:
+        return storage_backend.get_dashboard_snapshot(include_history=include_history), ""
+    except Exception as exc:
+        if is_external_service_error(exc):
+            app.logger.exception("Falha ao carregar dashboard via Supabase/httpx.")
+            return empty_dashboard_snapshot(), EXTERNAL_SERVICE_ERROR_MESSAGE
+
+        app.logger.exception("Falha inesperada ao carregar dashboard.")
+        return empty_dashboard_snapshot(), "Nao foi possivel carregar o painel agora."
+
+
+def is_external_service_error(exc: Exception) -> bool:
+    if isinstance(exc, (RuntimeError, OSError)):
+        return True
+
+    if httpx is not None and isinstance(
+        exc,
+        (
+            httpx.ConnectError,
+            httpx.TimeoutException,
+            httpx.NetworkError,
+            httpx.HTTPError,
+        ),
+    ):
+        return True
+
+    return False
 
 
 def stats_from_dashboard(approach_stats: dict) -> dict:
@@ -249,7 +299,7 @@ def debug_playwright():
 def index():
     status_filter = "NOVO"
     queue_filter = "NOVO"
-    dashboard_snapshot = storage_backend.get_dashboard_snapshot()
+    dashboard_snapshot, dashboard_error = safe_dashboard_snapshot()
     leads = []
     approach_stats = dashboard_snapshot["approach_stats"]
     pagination = {
@@ -264,7 +314,7 @@ def index():
     }
     pipeline_lead = dashboard_snapshot["next_lead"]
     scrapes_history = list(reversed(dashboard_snapshot["scrapes_history"]))
-    error = ""
+    error = dashboard_error
     searched = bool(approach_stats["total_leads"])
     elapsed_time = ""
     last_search_at = ""
@@ -297,7 +347,7 @@ def index():
                     True,
                 )
                 status_filter = "NOVO"
-                dashboard_snapshot = storage_backend.get_dashboard_snapshot()
+                dashboard_snapshot, dashboard_error = safe_dashboard_snapshot()
                 leads = []
                 approach_stats = dashboard_snapshot["approach_stats"]
                 pagination = {
@@ -313,10 +363,13 @@ def index():
                 queue_filter = "NOVO"
                 pipeline_lead = dashboard_snapshot["next_lead"]
                 scrapes_history = list(reversed(dashboard_snapshot["scrapes_history"]))
+                if dashboard_error:
+                    error = dashboard_error
                 elapsed_time = format_elapsed(perf_counter() - started_at)
                 last_search_at = datetime.now().strftime("%d/%m/%Y %H:%M")
             except Exception as exc:
-                error = f"Erro ao buscar leads: {exc}"
+                app.logger.exception("Erro ao buscar leads.")
+                error = "Erro ao buscar leads. Consulte os logs da aplicacao."
 
     return render_template(
         "index.html",
@@ -508,7 +561,9 @@ def esteira_feedback():
             },
         )
         print("Lead atualizado:", lead_id, final_status, flush=True)
-        dashboard_snapshot = storage_backend.get_dashboard_snapshot(include_history=False)
+        dashboard_snapshot, dashboard_error = safe_dashboard_snapshot(include_history=False)
+        if dashboard_error:
+            return jsonify({"ok": False, "error": dashboard_error}), 503
         next_lead = dashboard_snapshot["next_lead"]
         print("Próximo lead carregado:", (next_lead or {}).get("Lead ID", ""), flush=True)
         approach_stats = dashboard_snapshot["approach_stats"]

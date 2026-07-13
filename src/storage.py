@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+from urllib.parse import urlparse
 from datetime import datetime, timedelta
 from hashlib import sha1
 from pathlib import Path
@@ -73,6 +74,31 @@ def get_storage() -> str:
     if mode != "supabase":
         raise RuntimeError("STORAGE_MODE invalido. Use STORAGE_MODE=supabase.")
     return "supabase"
+
+
+def clean_env_value(value: str) -> str:
+    cleaned = str(value or "").strip()
+    if len(cleaned) >= 2 and cleaned[0] == cleaned[-1] and cleaned[0] in {"'", '"'}:
+        cleaned = cleaned[1:-1].strip()
+    return cleaned
+
+
+def validate_supabase_url(url: str) -> str:
+    cleaned = clean_env_value(url)
+    parsed = urlparse(cleaned)
+
+    if not cleaned:
+        raise RuntimeError("SUPABASE_URL ausente no modo supabase.")
+    if cleaned != cleaned.strip() or any(char.isspace() for char in cleaned):
+        raise RuntimeError("SUPABASE_URL invalida: remova espacos.")
+    if parsed.scheme != "https":
+        raise RuntimeError("SUPABASE_URL invalida: use o formato https://seu-projeto.supabase.co.")
+    if not parsed.hostname:
+        raise RuntimeError("SUPABASE_URL invalida: host ausente.")
+    if not parsed.hostname.endswith(".supabase.co"):
+        raise RuntimeError("SUPABASE_URL invalida: host Supabase inesperado.")
+
+    return cleaned
 
 
 def normalize_text(value: str) -> str:
@@ -188,11 +214,11 @@ def supabase_client():
     if create_client is None:
         raise RuntimeError("Instale a dependencia supabase. Fonte oficial: Supabase public.leads.")
 
-    url = os.getenv("SUPABASE_URL", "").strip()
-    key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip()
+    url = validate_supabase_url(os.getenv("SUPABASE_URL", ""))
+    key = clean_env_value(os.getenv("SUPABASE_SERVICE_ROLE_KEY", ""))
 
-    if not url or not key:
-        raise RuntimeError("SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY sao obrigatorios no modo supabase.")
+    if not key:
+        raise RuntimeError("SUPABASE_SERVICE_ROLE_KEY ausente no modo supabase.")
 
     return create_client(url, key)
 
@@ -340,6 +366,10 @@ def _empty_dashboard_stats() -> dict:
         "leads_com_telefone": 0,
         "leads_sem_site": 0,
     }
+
+
+def empty_dashboard_stats() -> dict:
+    return _empty_dashboard_stats()
 
 
 def load_recent_raspagens(limit: int = 5) -> list[dict]:

@@ -606,6 +606,9 @@
         function prepareWhatsappLinks() {
             document.querySelectorAll("a[href*='wa.me'], a[href*='whatsapp']").forEach((link) => {
                 link.dataset.whatsappBaseHref = whatsappHrefWithoutMessage(link.getAttribute("href"));
+                if (link.id === "pipeline-whatsapp") {
+                    return;
+                }
                 link.addEventListener("click", () => applyNextWhatsappMessage(link));
             });
         }
@@ -798,7 +801,9 @@
         confirmInvalidWhatsapp.addEventListener("click", () => confirmPipelineResult("whatsapp_invalido"));
 
         if (pipelineWhatsapp) {
-        pipelineWhatsapp.addEventListener("click", async () => {
+        pipelineWhatsapp.addEventListener("click", async (event) => {
+            event.preventDefault();
+
             if (!pipelineBody.dataset.leadId) {
                 return;
             }
@@ -817,6 +822,8 @@
                 if (data.approach_stats && data.approach_stats.total_leads !== undefined) {
                     updateApproachStats(data.approach_stats);
                 }
+                applyNextWhatsappMessage(pipelineWhatsapp);
+                window.open(pipelineWhatsapp.href, "_blank", "noopener");
                 openPipelineModal();
             }
         });
