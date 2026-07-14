@@ -6,7 +6,9 @@ from datetime import datetime
 from uuid import uuid4
 
 from flask import Flask, jsonify, redirect, render_template, request, send_file, session, url_for
+from werkzeug.utils import secure_filename
 
+from src import base_replacement
 from src import storage as storage_backend
 
 try:
@@ -43,6 +45,7 @@ load_dotenv(".env.local", override=True)
 
 app = Flask(__name__)
 app.secret_key = os.getenv("APP_SECRET_KEY", "leadmaps-local-dev")
+app.config["MAX_CONTENT_LENGTH"] = 12 * 1024 * 1024
 
 
 EXTERNAL_SERVICE_ERROR_MESSAGE = (
@@ -52,6 +55,25 @@ EXTERNAL_SERVICE_ERROR_MESSAGE = (
 
 
 STATUS_OPTIONS = ["NOVO"]
+REPLACEMENT_UPLOAD_DIR = Path("exports/substituicao_uploads")
+
+
+def public_error_message(exc: Exception) -> str:
+    if isinstance(exc, (FileNotFoundError, ValueError, RuntimeError)):
+        return str(exc)
+    return "Nao foi possivel concluir a operacao. Consulte os logs da aplicacao."
+
+
+def remove_replacement_upload(path_value: str | None) -> None:
+    if not path_value:
+        return
+    try:
+        path = Path(path_value).resolve()
+        upload_dir = REPLACEMENT_UPLOAD_DIR.resolve()
+        if upload_dir in path.parents and path.exists():
+            path.unlink()
+    except OSError:
+        app.logger.warning("Nao foi possivel remover upload temporario de substituicao.")
 
 
 @app.before_request
@@ -187,6 +209,56 @@ def stats_from_dashboard(approach_stats: dict) -> dict:
         "total_descartado": 0,
         "arquivo_excel": "",
         "mensagem_exportacao": "",
+    }
+
+
+def dashboard_context(
+    *,
+    error: str = "",
+    searched: bool | None = None,
+    stats: dict | None = None,
+    import_summary: dict | None = None,
+    reset_summary: dict | None = None,
+    replacement_preview: dict | None = None,
+    replacement_result: dict | None = None,
+    replacement_error: str = "",
+    replacement_report: str = "",
+) -> dict:
+    dashboard_snapshot, dashboard_error = safe_dashboard_snapshot()
+    approach_stats = dashboard_snapshot["approach_stats"]
+    final_error = error or dashboard_error
+
+    return {
+        "leads": [],
+        "error": final_error,
+        "form": default_form(),
+        "searched": bool(approach_stats["total_leads"]) if searched is None else searched,
+        "stats": stats or stats_from_dashboard(approach_stats),
+        "elapsed_time": "",
+        "last_search_at": "",
+        "approach_stats": approach_stats,
+        "pipeline_lead": dashboard_snapshot["next_lead"],
+        "queue_filter": "NOVO",
+        "status_filter": "NOVO",
+        "status_options": STATUS_OPTIONS,
+        "scrapes_history": list(reversed(dashboard_snapshot["scrapes_history"])),
+        "import_summary": import_summary,
+        "reset_summary": reset_summary,
+        "replacement_preview": replacement_preview,
+        "replacement_result": replacement_result,
+        "replacement_error": replacement_error,
+        "replacement_report": replacement_report,
+        "pagination": {
+            "page": 1,
+            "page_size": 0,
+            "total_items": 0,
+            "total_pages": 1,
+            "start": 0,
+            "end": 0,
+            "has_previous": False,
+            "has_next": False,
+        },
+        "last_updated_at": datetime.now().strftime("%H:%M:%S"),
     }
 
 
@@ -388,6 +460,10 @@ def index():
         scrapes_history=scrapes_history,
         import_summary=import_summary,
         reset_summary=None,
+        replacement_preview=None,
+        replacement_result=None,
+        replacement_error="",
+        replacement_report="",
         pagination=pagination,
         last_updated_at=datetime.now().strftime("%H:%M:%S"),
     )
@@ -414,6 +490,10 @@ def importar_planilha():
         scrapes_history=list(reversed(load_scrapes_history()[-5:])),
         import_summary=None,
         reset_summary=None,
+        replacement_preview=None,
+        replacement_result=None,
+        replacement_error="",
+        replacement_report="",
     )
 
 
@@ -445,6 +525,83 @@ def resetar_base():
         scrapes_history=list(reversed(load_scrapes_history()[-5:])),
         import_summary=None,
         reset_summary=reset_summary,
+        replacement_preview=None,
+        replacement_result=None,
+        replacement_error="",
+        replacement_report="",
+    )
+
+
+@app.route("/substituir-base", methods=["POST"])
+def substituir_base():
+    action = request.form.get("action", "preview")
+    replacement_error = ""
+    replacement_preview = None
+    replacement_result = None
+    replacement_report = ""
+
+    try:
+        if action == "preview":
+            remove_replacement_upload(session.get("replacement_upload_path"))
+            session.pop("replacement_upload_path", None)
+            upload = request.files.get("planilha_substituicao")
+            if not upload or not upload.filename:
+                raise RuntimeError("Selecione um arquivo Excel para gerar a previa.")
+
+            filename = secure_filename(upload.filename)
+            if not filename.lower().endswith((".xlsx", ".xls")):
+                raise RuntimeError("Arquivo invalido. Envie uma planilha .xlsx ou .xls.")
+
+            REPLACEMENT_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+            saved_path = REPLACEMENT_UPLOAD_DIR / f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid4().hex}_{filename}"
+            try:
+                upload.save(saved_path)
+                plan = base_replacement.plan_from_path(saved_path)
+            except Exception:
+                remove_replacement_upload(str(saved_path))
+                raise
+            current_leads = storage_backend.count_leads()
+            replacement_preview = plan.summary(current_leads=current_leads)
+            session["replacement_upload_path"] = str(saved_path)
+            app.logger.info(
+                "Previa de substituicao gerada: arquivo=%s total=%s validos=%s rejeitados=%s",
+                filename,
+                plan.total_rows,
+                plan.valid_count,
+                plan.rejected_count,
+            )
+        elif action == "confirm":
+            confirm_phrase = request.form.get("confirmacao_substituicao", "").strip()
+            saved_path = Path(session.get("replacement_upload_path", ""))
+            if not saved_path.exists():
+                raise RuntimeError("Arquivo da previa nao encontrado. Gere a previa novamente.")
+
+            plan = base_replacement.plan_from_path(saved_path)
+            result = base_replacement.execute_replacement(plan, confirm_phrase)
+            replacement_result = result
+            if result.get("rejected_report"):
+                replacement_report = Path(result["rejected_report"]).name
+            remove_replacement_upload(str(saved_path))
+            session.pop("replacement_upload_path", None)
+            app.logger.info(
+                "Substituicao executada pela interface: inseridos=%s rejeitados=%s",
+                result.get("inserted"),
+                plan.rejected_count,
+            )
+        else:
+            raise RuntimeError("Acao invalida.")
+    except Exception as exc:
+        app.logger.exception("Falha na rotina de substituicao de base.")
+        replacement_error = public_error_message(exc)
+
+    return render_template(
+        "index.html",
+        **dashboard_context(
+            replacement_preview=replacement_preview,
+            replacement_result=replacement_result,
+            replacement_error=replacement_error,
+            replacement_report=replacement_report,
+        ),
     )
 
 
@@ -613,6 +770,18 @@ def download_historico():
 
     if not path.exists():
         return "Nenhuma planilha foi gerada ainda.", 404
+
+    return send_file(path, as_attachment=True, download_name=path.name)
+
+
+@app.route("/download-rejeitados/<filename>")
+def download_rejeitados(filename):
+    safe_name = secure_filename(filename)
+    path = (base_replacement.REJECTED_DIR / safe_name).resolve()
+    rejected_dir = base_replacement.REJECTED_DIR.resolve()
+
+    if rejected_dir not in path.parents or not path.exists():
+        return "Relatorio de rejeitados nao encontrado.", 404
 
     return send_file(path, as_attachment=True, download_name=path.name)
 

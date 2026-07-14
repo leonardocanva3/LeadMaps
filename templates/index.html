@@ -121,6 +121,78 @@
             {% endif %}
         </section>
 
+        <section class="card replace-card">
+            <div class="replace-header">
+                <div>
+                    <span class="eyebrow">Administracao</span>
+                    <h2>Substituir Base de Leads</h2>
+                    <p>Esta acao substituira todos os leads atuais. Configuracoes e mensagens do sistema serao preservadas.</p>
+                </div>
+            </div>
+
+            <form method="post" action="{{ url_for('substituir_base') }}" enctype="multipart/form-data" class="replace-form">
+                <input type="hidden" name="action" value="preview">
+                <label>
+                    Upload do Excel
+                    <input type="file" name="planilha_substituicao" accept=".xlsx,.xls" required>
+                </label>
+                <button type="submit" class="primary-button">Gerar previa</button>
+            </form>
+
+            {% if replacement_error %}
+                <p class="error">{{ replacement_error }}</p>
+            {% endif %}
+
+            {% if replacement_preview %}
+                <div class="replace-summary">
+                    <strong>Previa da substituicao</strong>
+                    <ul>
+                        <li>Arquivo: {{ replacement_preview.source_name }}</li>
+                        <li>Aba: {{ replacement_preview.sheet_name }}</li>
+                        <li>Total de linhas: {{ replacement_preview.total_rows }}</li>
+                        <li>Leads validos: {{ replacement_preview.valid_leads }}</li>
+                        <li>Invalidos: {{ replacement_preview.invalid_leads }}</li>
+                        <li>Duplicados por telefone: {{ replacement_preview.duplicate_phone_rows }}</li>
+                        <li>Duplicidades nome+cidade: {{ replacement_preview.informative_duplicates }}</li>
+                        <li>Registros que serao importados: {{ replacement_preview.prepared_to_import }}</li>
+                        <li>Unique keys geradas: {{ replacement_preview.unique_keys }}</li>
+                        <li>Unique keys duplicadas: {{ replacement_preview.duplicate_unique_keys }}</li>
+                        <li>Leads atuais no sistema: {{ replacement_preview.current_leads }}</li>
+                    </ul>
+                    {% if replacement_preview.missing_columns %}
+                        <p class="error">Colunas obrigatorias ausentes: {{ replacement_preview.missing_columns | join(", ") }}</p>
+                    {% endif %}
+                    <form method="post" action="{{ url_for('substituir_base') }}" class="replace-confirm">
+                        <input type="hidden" name="action" value="confirm">
+                        <label>
+                            Digite SUBSTITUIR para confirmar
+                            <input type="text" name="confirmacao_substituicao" autocomplete="off" required>
+                        </label>
+                        <button type="submit" class="button danger">Substituir base</button>
+                    </form>
+                </div>
+            {% endif %}
+
+            {% if replacement_result %}
+                <div class="replace-summary success">
+                    <strong>Substituicao concluida</strong>
+                    <ul>
+                        <li>Leads antigos removidos: {{ replacement_result.deleted_counts.leads }}</li>
+                        <li>Feedbacks removidos: {{ replacement_result.deleted_counts.feedbacks }}</li>
+                        <li>Acoes recentes removidas: {{ replacement_result.deleted_counts.acoes_recentes }}</li>
+                        <li>Raspagens removidas: {{ replacement_result.deleted_counts.raspagens }}</li>
+                        <li>Leads importados: {{ replacement_result.inserted }}</li>
+                        <li>Total final: {{ replacement_result.final_count }}</li>
+                        <li>Tempo: {{ replacement_result.elapsed_seconds }}s</li>
+                        <li>Backup: {{ replacement_result.backup_path }}</li>
+                    </ul>
+                    {% if replacement_report %}
+                        <a class="button muted" href="{{ url_for('download_rejeitados', filename=replacement_report) }}">Baixar rejeitados</a>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </section>
+
         {% if searched and not error %}
             <section class="stats-grid">
                 <article class="stat-card">
