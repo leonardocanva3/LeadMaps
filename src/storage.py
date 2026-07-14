@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 from urllib.parse import urlparse
 from datetime import datetime, timedelta
@@ -22,6 +23,8 @@ try:
 except ImportError:  # Mantem o modo local funcional sem supabase instalado.
     create_client = None
 
+
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 load_dotenv(".env.local", override=True)
@@ -83,19 +86,43 @@ def clean_env_value(value: str) -> str:
     return cleaned
 
 
+def supabase_url_diagnostics(raw_url: str) -> dict:
+    stripped = str(raw_url or "").strip()
+    unquoted = clean_env_value(raw_url)
+    parsed = urlparse(unquoted)
+    return {
+        "exists": bool(str(raw_url or "")),
+        "length": len(str(raw_url or "")),
+        "starts_with_https": unquoted.startswith("https://"),
+        "hostname_ends_with_supabase_co": bool(parsed.hostname and parsed.hostname.endswith(".supabase.co")),
+        "hostname": parsed.hostname or "",
+        "has_edge_spaces": str(raw_url or "") != stripped,
+        "has_quotes": "'" in str(raw_url or "") or '"' in str(raw_url or ""),
+        "storage_mode_is_supabase": os.getenv("STORAGE_MODE", "supabase").strip().lower() == "supabase",
+    }
+
+
 def validate_supabase_url(url: str) -> str:
+    diagnostics = supabase_url_diagnostics(url)
+    logger.info("Diagnostico seguro SUPABASE_URL: %s", diagnostics)
+
     cleaned = clean_env_value(url)
     parsed = urlparse(cleaned)
 
     if not cleaned:
+        logger.error("SUPABASE_URL invalida: URL vazia.")
         raise RuntimeError("SUPABASE_URL ausente no modo supabase.")
     if cleaned != cleaned.strip() or any(char.isspace() for char in cleaned):
+        logger.error("SUPABASE_URL invalida: contem espacos.")
         raise RuntimeError("SUPABASE_URL invalida: remova espacos.")
     if parsed.scheme != "https":
+        logger.error("SUPABASE_URL invalida: esquema diferente de https.")
         raise RuntimeError("SUPABASE_URL invalida: use o formato https://seu-projeto.supabase.co.")
     if not parsed.hostname:
+        logger.error("SUPABASE_URL invalida: hostname vazio.")
         raise RuntimeError("SUPABASE_URL invalida: host ausente.")
     if not parsed.hostname.endswith(".supabase.co"):
+        logger.error("SUPABASE_URL invalida: dominio diferente de .supabase.co.")
         raise RuntimeError("SUPABASE_URL invalida: host Supabase inesperado.")
 
     return cleaned
