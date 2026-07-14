@@ -56,7 +56,14 @@ def main() -> None:
         print("Modo real nao executado. Confirmacao obrigatoria: --confirmar SUBSTITUIR")
         raise SystemExit(2)
 
-    result = execute_replacement(plan, args.confirmar)
+    try:
+        result = execute_replacement(plan, args.confirmar)
+    except Exception as exc:
+        print("")
+        print("Substituicao nao executada.")
+        print(f"Motivo: {type(exc).__name__}: {exc}")
+        print("Nenhum dado deve ter sido alterado se a falha ocorreu antes do backup/limpeza.")
+        raise SystemExit(1) from exc
     print("")
     print("Substituicao concluida")
     print(f"Backup: {result['backup_path']}")
