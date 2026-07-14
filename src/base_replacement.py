@@ -208,12 +208,13 @@ def detect_columns(columns: list[str]) -> dict[str, str]:
 
 
 def read_first_sheet(source: Any) -> tuple[pd.DataFrame, str]:
-    excel = pd.ExcelFile(source)
-    for sheet_name in excel.sheet_names:
-        dataframe = pd.read_excel(excel, sheet_name=sheet_name, dtype=object)
-        if not dataframe.dropna(how="all").empty:
-            return dataframe, sheet_name
-    return pd.read_excel(excel, sheet_name=excel.sheet_names[0], dtype=object), excel.sheet_names[0]
+    with pd.ExcelFile(source) as excel:
+        first_sheet = excel.sheet_names[0]
+        for sheet_name in excel.sheet_names:
+            dataframe = pd.read_excel(excel, sheet_name=sheet_name, dtype=object)
+            if not dataframe.dropna(how="all").empty:
+                return dataframe, sheet_name
+        return pd.read_excel(excel, sheet_name=first_sheet, dtype=object), first_sheet
 
 
 def pick(row: pd.Series, detected_columns: dict[str, str], canonical: str) -> str:

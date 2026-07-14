@@ -55,6 +55,7 @@ EXTERNAL_SERVICE_ERROR_MESSAGE = (
 
 
 STATUS_OPTIONS = ["NOVO"]
+APP_ROOT = Path(__file__).resolve().parent
 REPLACEMENT_UPLOAD_DIR = Path("exports/substituicao_uploads")
 
 
@@ -62,6 +63,46 @@ def public_error_message(exc: Exception) -> str:
     if isinstance(exc, (FileNotFoundError, ValueError, RuntimeError)):
         return str(exc)
     return "Nao foi possivel concluir a operacao. Consulte os logs da aplicacao."
+
+
+def safe_current_leads_count() -> int | None:
+    try:
+        return storage_backend.count_leads()
+    except Exception:
+        app.logger.exception("Nao foi possivel contar leads atuais durante previa de substituicao.")
+        return None
+
+
+def resolve_internal_spreadsheet(value: str) -> Path:
+    if not value:
+        raise RuntimeError("Selecione uma planilha interna.")
+    candidate = (APP_ROOT / value).resolve()
+    if APP_ROOT not in candidate.parents or candidate == APP_ROOT:
+        raise RuntimeError("Planilha interna invalida.")
+    if candidate.suffix.lower() not in {".xlsx", ".xls"}:
+        raise RuntimeError("Planilha interna invalida.")
+    if not candidate.exists():
+        raise RuntimeError("Planilha interna nao encontrada.")
+    return candidate
+
+
+def discover_internal_spreadsheets() -> list[dict[str, str]]:
+    spreadsheets = []
+    for path in sorted([*APP_ROOT.glob("*.xlsx"), *APP_ROOT.glob("*.xls")]):
+        try:
+            plan = base_replacement.plan_from_path(path)
+        except Exception:
+            continue
+        required = {"nome", "telefone", "cidade", "estado", "categoria", "avaliacoes", "website", "link_google_maps", "whatsapp_link"}
+        if required.issubset(set(plan.detected_columns)):
+            spreadsheets.append(
+                {
+                    "name": path.name,
+                    "relative_path": path.relative_to(APP_ROOT).as_posix(),
+                    "size": path.stat().st_size,
+                }
+            )
+    return spreadsheets
 
 
 def remove_replacement_upload(path_value: str | None) -> None:
@@ -248,6 +289,7 @@ def dashboard_context(
         "replacement_result": replacement_result,
         "replacement_error": replacement_error,
         "replacement_report": replacement_report,
+        "replacement_internal_files": discover_internal_spreadsheets(),
         "pagination": {
             "page": 1,
             "page_size": 0,
@@ -549,6 +591,12 @@ def substituir_base():
                 raise RuntimeError("Selecione um arquivo Excel para gerar a previa.")
 
             filename = secure_filename(upload.filename)
+            app.logger.info(
+                "Inicio da previa por upload: arquivo=%s extensao=%s content_length=%s",
+                filename,
+                Path(filename).suffix.lower(),
+                request.content_length,
+            )
             if not filename.lower().endswith((".xlsx", ".xls")):
                 raise RuntimeError("Arquivo invalido. Envie uma planilha .xlsx ou .xls.")
 
@@ -560,12 +608,32 @@ def substituir_base():
             except Exception:
                 remove_replacement_upload(str(saved_path))
                 raise
-            current_leads = storage_backend.count_leads()
+            current_leads = safe_current_leads_count()
             replacement_preview = plan.summary(current_leads=current_leads)
             session["replacement_upload_path"] = str(saved_path)
             app.logger.info(
                 "Previa de substituicao gerada: arquivo=%s total=%s validos=%s rejeitados=%s",
                 filename,
+                plan.total_rows,
+                plan.valid_count,
+                plan.rejected_count,
+            )
+        elif action == "preview_internal":
+            remove_replacement_upload(session.get("replacement_upload_path"))
+            session.pop("replacement_upload_path", None)
+            internal_path = resolve_internal_spreadsheet(request.form.get("internal_spreadsheet", ""))
+            app.logger.info(
+                "Inicio da previa por planilha interna: arquivo=%s tamanho=%s",
+                internal_path.name,
+                internal_path.stat().st_size,
+            )
+            plan = base_replacement.plan_from_path(internal_path)
+            current_leads = safe_current_leads_count()
+            replacement_preview = plan.summary(current_leads=current_leads)
+            session["replacement_upload_path"] = str(internal_path)
+            app.logger.info(
+                "Previa interna gerada: arquivo=%s total=%s validos=%s rejeitados=%s",
+                internal_path.name,
                 plan.total_rows,
                 plan.valid_count,
                 plan.rejected_count,
@@ -591,7 +659,12 @@ def substituir_base():
         else:
             raise RuntimeError("Acao invalida.")
     except Exception as exc:
-        app.logger.exception("Falha na rotina de substituicao de base.")
+        app.logger.exception(
+            "Falha na rotina de substituicao de base: tipo=%s mensagem=%s etapa=%s",
+            type(exc).__name__,
+            str(exc),
+            action,
+        )
         replacement_error = public_error_message(exc)
 
     return render_template(

@@ -139,6 +139,21 @@
                 <button type="submit" class="primary-button">Gerar previa</button>
             </form>
 
+            {% if replacement_internal_files %}
+                <form method="post" action="{{ url_for('substituir_base') }}" class="replace-form">
+                    <input type="hidden" name="action" value="preview_internal">
+                    <label>
+                        Usar planilha interna detectada
+                        <select name="internal_spreadsheet" required>
+                            {% for file in replacement_internal_files %}
+                                <option value="{{ file.relative_path }}">{{ file.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                    <button type="submit" class="button muted">Gerar previa interna</button>
+                </form>
+            {% endif %}
+
             {% if replacement_error %}
                 <p class="error">{{ replacement_error }}</p>
             {% endif %}
