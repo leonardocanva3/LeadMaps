@@ -1,9 +1,13 @@
 from pathlib import Path
 from importlib.metadata import PackageNotFoundError, version
 import os
+import socket
 from time import perf_counter
 from datetime import datetime
 from uuid import uuid4
+from urllib.error import HTTPError, URLError
+from urllib.parse import urlparse
+from urllib.request import Request, urlopen
 
 from flask import Flask, jsonify, redirect, render_template, request, send_file, session, url_for
 from werkzeug.utils import secure_filename
@@ -407,6 +411,65 @@ def debug_playwright():
             "render_browsers_path_folders": folders,
         }
     )
+
+
+@app.route("/debug/supabase")
+def debug_supabase():
+    raw_url = os.getenv("SUPABASE_URL", "")
+    effective_url = storage_backend.clean_env_value(raw_url)
+    parsed = urlparse(effective_url)
+    hostname = parsed.hostname or ""
+    dns_resolution = ""
+    socket_error = ""
+    client_created = False
+
+    if hostname:
+        try:
+            socket.getaddrinfo(hostname, 443)
+            dns_resolution = "ok"
+        except OSError as exc:
+            dns_resolution = "error"
+            socket_error = str(exc)
+
+        if dns_resolution == "ok":
+            try:
+                request_head = Request(f"https://{hostname}", method="HEAD")
+                with urlopen(request_head, timeout=5) as response:
+                    dns_resolution = f"ok; http_status={response.status}"
+            except HTTPError as exc:
+                dns_resolution = f"ok; http_status={exc.code}"
+            except URLError as exc:
+                dns_resolution = "http_error"
+                socket_error = str(exc.reason)
+            except OSError as exc:
+                dns_resolution = "http_error"
+                socket_error = str(exc)
+    else:
+        dns_resolution = "hostname_missing"
+
+    try:
+        storage_backend.supabase_client()
+        client_created = True
+    except Exception as exc:
+        if not socket_error:
+            socket_error = f"{type(exc).__name__}: {exc}"
+
+    payload = {
+        "storage_mode": os.getenv("STORAGE_MODE", ""),
+        "supabase_url_exists": bool(raw_url),
+        "url_length": len(raw_url),
+        "starts_https": effective_url.startswith("https://"),
+        "hostname": hostname,
+        "ends_with_supabase_co": bool(hostname and hostname.endswith(".supabase.co")),
+        "contains_quotes": "'" in raw_url or '"' in raw_url,
+        "leading_space": raw_url.startswith((" ", "\t", "\r", "\n")),
+        "trailing_space": raw_url.endswith((" ", "\t", "\r", "\n")),
+        "dns_resolution": dns_resolution,
+        "socket_error": socket_error,
+        "client_created": client_created,
+    }
+    app.logger.info("Debug Supabase seguro: %s", payload)
+    return jsonify(payload)
 
 
 @app.route("/", methods=["GET", "POST"])
